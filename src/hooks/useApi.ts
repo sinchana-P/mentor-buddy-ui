@@ -1,0 +1,12 @@
+// Re-export RTK Query hooks for backward compatibility
+// This allows existing components to continue using the same hook names
+export {
+  useGetHealthQuery as useHealth,
+  useGetUsersQuery as useUsers,
+  useGetMentorsQuery as useMentors,
+  useGetBuddiesQuery as useBuddies,
+  useGetTasksQuery as useTasks,
+  useGetResourcesQuery as useResources,
+  useGetDashboardStatsQuery as useDashboardStats,
+  useGetDashboardActivityQuery as useDashboardActivity,
+} from '../api/apiSlice';
