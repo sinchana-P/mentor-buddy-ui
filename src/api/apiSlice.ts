@@ -207,7 +207,7 @@ export const apiSlice = createApi({
         method: 'PATCH',
         body: data,
       }),
-      invalidatesTags: (result, error, { id }) => [{ type: 'Mentor', id }, 'Mentors'],
+      invalidatesTags: (_result, _error, { id }) => [{ type: 'Mentor', id }, 'Mentors'],
     }),
 
     updateBuddy: builder.mutation<Buddy, { id: string; data: Partial<{ name: string; email: string; domainRole: string; status: string; assignedMentorId: string }> }>({
@@ -243,7 +243,7 @@ export const apiSlice = createApi({
         url: `/api/mentors/${id}`,
         method: 'DELETE',
       }),
-      invalidatesTags: (result, error, id) => [{ type: 'Mentor', id }, 'Mentors', 'DashboardStats'],
+      invalidatesTags: (_result, _error, id) => [{ type: 'Mentor', id }, 'Mentors', 'DashboardStats'],
     }),
 
     deleteBuddy: builder.mutation<void, string>({
