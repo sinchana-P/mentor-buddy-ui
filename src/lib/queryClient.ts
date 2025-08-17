@@ -3,7 +3,7 @@
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || (
   import.meta.env.PROD 
-    ? 'https://mentor-buddy-panel.onrender.com' 
+    ? 'https://mentor-buddy-backend.onrender.com' 
     : 'http://localhost:3000'
 );
 
