@@ -141,7 +141,7 @@ export default function Layout({ children, theme, setTheme }: LayoutProps) {
   );
 
   return (
-    <div className="flex h-screen page-container">
+    <div className="flex h-dvh page-container">
       {/* Mobile sidebar overlay */}
       {isMobile && sidebarOpen && (
         <div 

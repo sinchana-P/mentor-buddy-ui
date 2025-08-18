@@ -238,14 +238,14 @@ function Router({ theme, setTheme }: AppProps) {
 
 function App({ theme, setTheme }: AppProps) {
   return (
-    <div className="bg-[hsl(var(--card))] text-[hsl(var(--foreground))] border border-[hsl(var(--card-border))] rounded-xl p-6">
+    <div className="min-h-dvh bg-background">
       <AuthProvider>
         <TooltipProvider>
           <Toaster />
           <Router theme={theme} setTheme={setTheme} />
         </TooltipProvider>
       </AuthProvider>
-     </div>
+    </div>
   );
 }
 
