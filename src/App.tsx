@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { ThemeProvider } from "@/contexts/ThemeContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import Layout from "@/components/Layout";
 import AuthPage from "@/pages/auth";
@@ -21,12 +22,7 @@ import CurriculumPage from "@/pages/curriculum";
 import CurriculumDetailsPage from "@/pages/curriculum-details";
 import NotFound from "@/pages/not-found";
 
-interface AppProps {
-  theme: string;
-  setTheme: (theme: string) => void;
-}
-
-function Router({ theme, setTheme }: AppProps) {
+function Router() {
   return (
     <AnimatePresence mode="wait">
       <Switch>
@@ -36,7 +32,7 @@ function Router({ theme, setTheme }: AppProps) {
         {/* Protected Routes */}
         <Route path="/" component={() => (
           <ProtectedRoute>
-            <Layout theme={theme} setTheme={setTheme}>
+            <Layout>
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -51,7 +47,7 @@ function Router({ theme, setTheme }: AppProps) {
         
         <Route path="/dashboard" component={() => (
           <ProtectedRoute>
-            <Layout theme={theme} setTheme={setTheme}>
+            <Layout>
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -66,7 +62,7 @@ function Router({ theme, setTheme }: AppProps) {
         
         <Route path="/mentors" component={() => (
           <ProtectedRoute>
-            <Layout theme={theme} setTheme={setTheme}>
+            <Layout>
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -81,7 +77,7 @@ function Router({ theme, setTheme }: AppProps) {
         
         <Route path="/buddies" component={() => (
           <ProtectedRoute requiredRoles={['manager', 'mentor']}>
-            <Layout theme={theme} setTheme={setTheme}>
+            <Layout>
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -96,7 +92,7 @@ function Router({ theme, setTheme }: AppProps) {
 
         <Route path="/buddies/:id" component={() => (
           <ProtectedRoute>
-            <Layout theme={theme} setTheme={setTheme}>
+            <Layout>
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -111,7 +107,7 @@ function Router({ theme, setTheme }: AppProps) {
 
         <Route path="/tasks" component={() => (
           <ProtectedRoute>
-            <Layout theme={theme} setTheme={setTheme}>
+            <Layout>
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -126,7 +122,7 @@ function Router({ theme, setTheme }: AppProps) {
 
         <Route path="/resources" component={() => (
           <ProtectedRoute>
-            <Layout theme={theme} setTheme={setTheme}>
+            <Layout>
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -141,7 +137,7 @@ function Router({ theme, setTheme }: AppProps) {
 
         <Route path="/curriculum" component={() => (
           <ProtectedRoute>
-            <Layout theme={theme} setTheme={setTheme}>
+            <Layout>
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -156,7 +152,7 @@ function Router({ theme, setTheme }: AppProps) {
 
         <Route path="/curriculum/:id" component={() => (
           <ProtectedRoute>
-            <Layout theme={theme} setTheme={setTheme}>
+            <Layout>
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -171,7 +167,7 @@ function Router({ theme, setTheme }: AppProps) {
 
         <Route path="/analytics" component={() => (
           <ProtectedRoute requiredRoles={['manager', 'mentor']}>
-            <Layout theme={theme} setTheme={setTheme}>
+            <Layout>
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -186,7 +182,7 @@ function Router({ theme, setTheme }: AppProps) {
 
         <Route path="/settings" component={() => (
           <ProtectedRoute>
-            <Layout theme={theme} setTheme={setTheme}>
+            <Layout>
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -201,7 +197,7 @@ function Router({ theme, setTheme }: AppProps) {
 
         <Route path="/mentors/:id" component={() => (
           <ProtectedRoute>
-            <Layout theme={theme} setTheme={setTheme}>
+            <Layout>
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -216,7 +212,7 @@ function Router({ theme, setTheme }: AppProps) {
         
         <Route path="/buddies/:id" component={() => (
           <ProtectedRoute>
-            <Layout theme={theme} setTheme={setTheme}>
+            <Layout>
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -236,16 +232,18 @@ function Router({ theme, setTheme }: AppProps) {
   );
 }
 
-function App({ theme, setTheme }: AppProps) {
+function App() {
   return (
-    <div className="min-h-dvh bg-background">
-      <AuthProvider>
-        <TooltipProvider>
-          <Toaster />
-          <Router theme={theme} setTheme={setTheme} />
-        </TooltipProvider>
-      </AuthProvider>
-    </div>
+    <ThemeProvider>
+      <div className="min-h-dvh bg-background">
+        <AuthProvider>
+          <TooltipProvider>
+            <Toaster />
+            <Router />
+          </TooltipProvider>
+        </AuthProvider>
+      </div>
+    </ThemeProvider>
   );
 }
 

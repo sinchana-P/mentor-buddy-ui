@@ -30,11 +30,9 @@ const navigation = [
 
 interface LayoutProps {
   children?: React.ReactNode;
-  theme?: string;
-  setTheme?: (theme: string) => void;
 }
 
-export default function Layout({ children, theme, setTheme }: LayoutProps) {
+export default function Layout({ children }: LayoutProps) {
   const [location] = useLocation();
   const { user, signOut } = useAuth();
   const isMobile = useIsMobile();
@@ -161,7 +159,7 @@ export default function Layout({ children, theme, setTheme }: LayoutProps) {
       {/* Main content */}
       <div className="flex-1 flex flex-col min-w-0 bg-background">
         {/* Top bar for all screens */}
-        <TopBar theme={theme || 'dark'} setTheme={setTheme || (() => {})} />
+        <TopBar />
         {/* Page content */}
         <main className="flex-1 overflow-auto bg-background">
           {children}

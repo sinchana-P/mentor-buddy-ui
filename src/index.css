@@ -10,7 +10,9 @@ html, body {
 }
 
 @layer base {
-:root {
+/* 🎯 DARK THEME */
+:root,
+.theme-dark {
   /* 🎯 PREMIUM DARK THEME - UNIFORM BACKGROUND */
   --background: 0 0% 6%;                   /* Ultra deep black background */
   --background-secondary: 0 0% 8%;        /* Slightly lighter for secondary areas */
@@ -67,6 +69,98 @@ html, body {
   --shadow-premium-lg: 0 16px 64px rgba(0, 0, 0, 0.4);
   --shadow-glow: 0 0 0 1px rgba(255, 255, 255, 0.05);
   --shadow-inner: inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+/* 🌊 NAVY BLUE THEME */
+.theme-navy {
+  --background: 220 30% 8%;               /* Deep navy background */
+  --background-secondary: 220 28% 12%;    /* Slightly lighter navy */
+  --background-tertiary: 220 25% 16%;     /* Tertiary navy */
+
+  --foreground: 220 15% 96%;              /* Light blue-white text */
+  --foreground-secondary: 220 12% 82%;    /* Secondary blue-white */
+  --foreground-muted: 220 10% 65%;        /* Muted blue-gray */
+
+  --card: 220 28% 12%;                    /* Navy card background */
+  --card-secondary: 220 25% 16%;          /* Secondary navy card */
+  --card-hover: 220 25% 20%;              /* Navy hover state */
+  --card-foreground: 220 15% 96%;         /* Light text on cards */
+  --card-border: 220 20% 24%;             /* Navy borders */
+
+  --primary: 220 80% 60%;                 /* Bright blue primary */
+  --primary-foreground: 220 30% 8%;       /* Dark navy on primary */
+  --secondary: 220 25% 20%;               /* Dark navy secondary */
+  --secondary-foreground: 220 15% 96%;    /* Light text on secondary */
+  --accent: 220 30% 28%;                  /* Navy accent */
+  --accent-foreground: 220 15% 96%;       /* Light text on accent */
+
+  --muted: 220 25% 18%;                   /* Navy muted background */
+  --muted-foreground: 220 12% 72%;        /* Muted navy text */
+
+  --success: 142 60% 50%;                 /* Success green */
+  --success-foreground: 0 0% 100%;        /* White text */
+  --warning: 40 85% 60%;                  /* Warning orange */
+  --warning-foreground: 220 30% 8%;       /* Dark navy text */
+  --destructive: 0 75% 65%;               /* Destructive red */
+  --destructive-foreground: 0 0% 100%;    /* White text */
+
+  --border: 220 20% 24%;                  /* Navy borders */
+  --border-hover: 220 20% 32%;            /* Navy hover borders */
+  --input: 220 25% 16%;                   /* Navy input backgrounds */
+  --ring: 220 80% 60%;                    /* Blue focus rings */
+  --popover: 220 28% 12%;                 /* Navy popover backgrounds */
+  --popover-foreground: 220 15% 96%;      /* Light popover text */
+
+  --shadow-premium: 0 8px 32px rgba(15, 23, 42, 0.4);
+  --shadow-premium-lg: 0 16px 64px rgba(15, 23, 42, 0.5);
+  --shadow-glow: 0 0 0 1px rgba(59, 130, 246, 0.1);
+  --shadow-inner: inset 0 1px 0 rgba(59, 130, 246, 0.15);
+}
+
+/* ☀️ LIGHT THEME */
+.theme-light {
+  --background: 0 0% 98%;                 /* Pure white background */
+  --background-secondary: 0 0% 96%;       /* Light gray secondary */
+  --background-tertiary: 0 0% 94%;        /* Tertiary light gray */
+
+  --foreground: 0 0% 8%;                  /* Dark text */
+  --foreground-secondary: 0 0% 20%;       /* Secondary dark text */
+  --foreground-muted: 0 0% 45%;           /* Muted gray text */
+
+  --card: 0 0% 100%;                      /* Pure white cards */
+  --card-secondary: 0 0% 98%;             /* Light gray cards */
+  --card-hover: 0 0% 96%;                 /* Light hover state */
+  --card-foreground: 0 0% 8%;             /* Dark text on cards */
+  --card-border: 0 0% 88%;                /* Light gray borders */
+
+  --primary: 0 0% 8%;                     /* Dark primary */
+  --primary-foreground: 0 0% 98%;         /* Light text on primary */
+  --secondary: 0 0% 92%;                  /* Light gray secondary */
+  --secondary-foreground: 0 0% 8%;        /* Dark text on secondary */
+  --accent: 0 0% 88%;                     /* Light gray accent */
+  --accent-foreground: 0 0% 8%;           /* Dark text on accent */
+
+  --muted: 0 0% 94%;                      /* Light muted background */
+  --muted-foreground: 0 0% 40%;           /* Muted gray text */
+
+  --success: 142 50% 40%;                 /* Success green */
+  --success-foreground: 0 0% 100%;        /* White text */
+  --warning: 40 90% 50%;                  /* Warning orange */
+  --warning-foreground: 0 0% 100%;        /* White text */
+  --destructive: 0 75% 55%;               /* Destructive red */
+  --destructive-foreground: 0 0% 100%;    /* White text */
+
+  --border: 0 0% 88%;                     /* Light gray borders */
+  --border-hover: 0 0% 80%;               /* Darker gray hover borders */
+  --input: 0 0% 100%;                     /* White input backgrounds */
+  --ring: 0 0% 8%;                        /* Dark focus rings */
+  --popover: 0 0% 100%;                   /* White popover backgrounds */
+  --popover-foreground: 0 0% 8%;          /* Dark popover text */
+
+  --shadow-premium: 0 8px 32px rgba(0, 0, 0, 0.08);
+  --shadow-premium-lg: 0 16px 64px rgba(0, 0, 0, 0.12);
+  --shadow-glow: 0 0 0 1px rgba(0, 0, 0, 0.05);
+  --shadow-inner: inset 0 1px 0 rgba(255, 255, 255, 0.9);
 }
 }
 

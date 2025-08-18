@@ -3,14 +3,8 @@ import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Menu, Bell, Settings } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { BulbOutlined, MoonOutlined } from '@ant-design/icons';
 
-interface TopBarProps {
-  theme: string;
-  setTheme: (theme: string) => void;
-}
-
-export function TopBar({ theme, setTheme }: TopBarProps) {
+export function TopBar() {
   const { user } = useAuth();
   const isMobile = useIsMobile();
 
