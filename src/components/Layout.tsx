@@ -56,25 +56,25 @@ export default function Layout({ children, theme, setTheme }: LayoutProps) {
   };
 
   const Sidebar = () => (
-    <div className="flex flex-col h-full premium-card">
+    <div className="flex flex-col h-full sidebar-premium">
       {/* User Profile Section - Top */}
-      <div className="p-6 border-b border-white/10">
+      <div className="p-6 border-b border-border">
         <div className="text-center">
-          <div className="w-20 h-20 bg-gradient-to-br from-white/20 to-white/10 rounded-full flex items-center justify-center ring-2 ring-white/10 mx-auto mb-4">
-            <span className="text-2xl font-bold text-white">
-              {user?.name?.split(' ').map(n => n[0]).join('') || 'U'}
+          <div className="w-16 h-16 bg-card rounded-full flex items-center justify-center ring-1 ring-border mx-auto mb-4">
+            <span className="text-xl font-bold text-foreground">
+              {user?.name?.split(' ').map(n => n[0]).join('') || 'M2'}
             </span>
           </div>
-          <h3 className="text-lg font-bold text-white mb-1">
-            {user?.name || 'James Black'}
+          <h3 className="text-lg font-bold text-foreground mb-1">
+            {user?.name || 'Manager 2'}
           </h3>
-          <p className="text-sm text-white/60 mb-2">
-            {user?.email || 'jamesblack@gmail.com'}
+          <p className="text-sm text-muted-foreground mb-2">
+            {user?.email || 'manager2@gmail.com'}
           </p>
         </div>
         {isMobile && (
           <button 
-            className="absolute top-4 right-4 p-2 rounded-lg bg-white/5 hover:bg-white/10 transition-colors text-white/60 hover:text-white"
+            className="absolute top-4 right-4 p-2 rounded-lg bg-card hover:bg-card-hover transition-colors text-muted-foreground hover:text-foreground"
             onClick={() => setSidebarOpen(false)}
           >
             <X className="h-4 w-4" />
@@ -92,20 +92,20 @@ export default function Layout({ children, theme, setTheme }: LayoutProps) {
               <Link key={item.href} href={item.href}>
                 <button
                   className={cn(
-                    "w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 text-left",
+                    "w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 text-left font-medium",
                     active 
-                      ? "bg-white/10 text-white shadow-sm" 
-                      : "hover:bg-white/5 text-white/70 hover:text-white"
+                      ? "bg-card text-foreground border border-border shadow-sm" 
+                      : "hover:bg-card/50 text-muted-foreground hover:text-foreground"
                   )}
                   onClick={() => isMobile && setSidebarOpen(false)}
                 >
                   <Icon className={cn(
                     "h-5 w-5 transition-colors",
-                    active ? "text-white" : "text-white/60"
+                    active ? "text-foreground" : "text-muted-foreground"
                   )} />
                   <span className={cn(
                     "font-medium",
-                    active ? "text-white" : "text-white/70"
+                    active ? "text-foreground" : "text-muted-foreground"
                   )}>
                     {item.name}
                   </span>
@@ -117,20 +117,20 @@ export default function Layout({ children, theme, setTheme }: LayoutProps) {
       </ScrollArea>
 
       {/* Bottom Actions */}
-      <div className="p-3 border-t border-white/10 space-y-1">
+      <div className="p-3 border-t border-border space-y-1">
         <Link href="/settings">
           <button className={cn(
-            "w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors",
+            "w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors font-medium",
             isActive('/settings') 
-              ? "bg-white/10 text-white shadow-sm"
-              : "hover:bg-white/5 text-white/70 hover:text-white"
+              ? "bg-card text-foreground border border-border shadow-sm"
+              : "hover:bg-card/50 text-muted-foreground hover:text-foreground"
           )}>
             <Settings className="h-5 w-5" />
             <span className="font-medium">Settings</span>
           </button>
         </Link>
         <button 
-          className="w-full flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-red-500/10 text-red-400 hover:text-red-300 transition-colors"
+          className="w-full flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-destructive/10 text-destructive hover:text-destructive transition-colors font-medium"
           onClick={handleSignOut}
         >
           <LogOut className="h-5 w-5" />
@@ -141,7 +141,7 @@ export default function Layout({ children, theme, setTheme }: LayoutProps) {
   );
 
   return (
-    <div className="flex h-screen bg-background">
+    <div className="flex h-screen page-container">
       {/* Mobile sidebar overlay */}
       {isMobile && sidebarOpen && (
         <div 
@@ -152,18 +152,18 @@ export default function Layout({ children, theme, setTheme }: LayoutProps) {
 
       {/* Sidebar */}
       <aside className={cn(
-        "fixed inset-y-0 left-0 z-50 w-64 bg-background border-r border-white/10 transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:inset-0",
+        "fixed inset-y-0 left-0 z-50 w-64 transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:inset-0",
         isMobile && !sidebarOpen && "-translate-x-full"
       )}>
         <Sidebar />
       </aside>
 
       {/* Main content */}
-      <div className="flex-1 flex flex-col min-w-0">
+      <div className="flex-1 flex flex-col min-w-0 bg-background">
         {/* Top bar for all screens */}
         <TopBar theme={theme || 'dark'} setTheme={setTheme || (() => {})} />
         {/* Page content */}
-        <main className="flex-1 overflow-auto">
+        <main className="flex-1 overflow-auto bg-background">
           {children}
         </main>
       </div>

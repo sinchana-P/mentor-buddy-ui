@@ -85,7 +85,7 @@ export default function MentorsPage() {
   }
 
   return (
-    <div className="min-h-screen p-6">
+    <div className="min-h-screen p-6 page-container">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -97,19 +97,19 @@ export default function MentorsPage() {
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, ease: "easeOut" }}
-          className="premium-card glass-card mb-8"
+          className="premium-card mb-8"
         >
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-6 space-y-4 lg:space-y-0">
             <div className="space-y-3">
               <div className="flex items-start gap-4">
-                <div className="w-12 h-12 gradient-primary rounded-xl flex items-center justify-center mt-1">
-                  <Crown className="w-6 h-6 text-white" />
+                <div className="w-12 h-12 bg-card rounded-xl flex items-center justify-center mt-1 ring-1 ring-border">
+                  <Crown className="w-6 h-6 text-foreground" />
                 </div>
                 <div className="flex-1">
-                  <h1 className="text-3xl font-bold text-gradient mb-2">Mentors</h1>
+                  <h1 className="text-3xl font-bold text-foreground mb-2">Mentors</h1>
                   <div className="flex items-center gap-2">
-                    <Sparkles className="w-4 h-4 text-purple-400" />
-                    <p className="text-foreground-secondary">Premium mentor management system</p>
+                    <Sparkles className="w-4 h-4 text-foreground" />
+                    <p className="text-muted-foreground">Premium mentor management system</p>
                   </div>
                 </div>
               </div>

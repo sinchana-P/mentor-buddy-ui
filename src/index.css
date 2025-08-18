@@ -11,50 +11,50 @@ html, body {
 
 @layer base {
 :root {
-  /* ⚫ NEUTRAL BLACK BACKGROUND */
-  --background: 0 0% 8%;                   /* Deep neutral black */
-  --background-secondary: 0 0% 12%;
-  --background-tertiary: 0 0% 16%;
+  /* 🎯 PREMIUM DARK THEME - UNIFORM BACKGROUND */
+  --background: 0 0% 6%;                   /* Ultra deep black background */
+  --background-secondary: 0 0% 8%;        /* Slightly lighter for secondary areas */
+  --background-tertiary: 0 0% 10%;        /* Tertiary backgrounds */
 
   /* 🔤 FOREGROUND */
-  --foreground: 0 0% 95%;                  /* Crisp white */
-  --foreground-secondary: 0 0% 75%;
-  --foreground-muted: 0 0% 55%;
+  --foreground: 0 0% 98%;                  /* Pure white text */
+  --foreground-secondary: 0 0% 80%;       /* Secondary text */
+  --foreground-muted: 0 0% 60%;           /* Muted text */
 
-  /* 🧾 NEUTRAL BLACK CARDS */
-  --card: 0 0% 14%;                        /* Neutral black card */
-  --card-secondary: 0 0% 18%;
-  --card-hover: 0 0% 20%;
-  --card-foreground: 0 0% 95%;
-  --card-border: 0 0% 25%;
+  /* 🧾 UNIFORM CARDS - NO COLOR VARIATIONS */
+  --card: 0 0% 8%;                        /* Uniform card background */
+  --card-secondary: 0 0% 10%;             /* Secondary card variant */
+  --card-hover: 0 0% 12%;                 /* Hover state */
+  --card-foreground: 0 0% 98%;            /* Card text */
+  --card-border: 0 0% 15%;                /* Subtle borders */
 
-  /* 🔵 SUBTLE ACCENT COLORS */
-  --primary: 0 0% 65%;                     /* Neutral gray for accents */
-  --primary-foreground: 0 0% 10%;
-  --secondary: 0 0% 55%;
-  --secondary-foreground: 0 0% 10%;
-  --accent: 0 0% 75%;
-  --accent-foreground: 0 0% 10%;
+  /* 🔵 MINIMAL ACCENT COLORS */
+  --primary: 0 0% 98%;                    /* White primary */
+  --primary-foreground: 0 0% 6%;          /* Dark text on white */
+  --secondary: 0 0% 15%;                  /* Dark secondary */
+  --secondary-foreground: 0 0% 98%;       /* White text on dark */
+  --accent: 0 0% 20%;                     /* Subtle accent */
+  --accent-foreground: 0 0% 98%;          /* White text on accent */
 
   /* 🧊 MUTED */
-  --muted: 0 0% 22%;
-  --muted-foreground: 0 0% 65%;
+  --muted: 0 0% 12%;                      /* Muted backgrounds */
+  --muted-foreground: 0 0% 70%;           /* Muted text */
 
-  /* ✅ STATUS - Subtle versions */
-  --success: 142 50% 50%;
-  --success-foreground: 0 0% 100%;
-  --warning: 40 80% 60%;
-  --warning-foreground: 0 0% 10%;
-  --destructive: 0 70% 65%;
-  --destructive-foreground: 0 0% 100%;
+  /* ✅ STATUS - MINIMAL COLORS */
+  --success: 142 50% 45%;                 /* Success green */
+  --success-foreground: 0 0% 100%;        /* White text */
+  --warning: 40 80% 55%;                  /* Warning orange */
+  --warning-foreground: 0 0% 10%;         /* Dark text */
+  --destructive: 0 70% 60%;               /* Destructive red */
+  --destructive-foreground: 0 0% 100%;    /* White text */
 
   /* 🎯 INTERACTION */
-  --border: 0 0% 25%;
-  --border-hover: 0 0% 35%;
-  --input: 0 0% 16%;
-  --ring: 0 0% 65%;
-  --popover: 0 0% 14%;
-  --popover-foreground: 0 0% 95%;
+  --border: 0 0% 15%;                     /* Subtle borders */
+  --border-hover: 0 0% 25%;               /* Hover borders */
+  --input: 0 0% 10%;                      /* Input backgrounds */
+  --ring: 0 0% 98%;                       /* Focus rings */
+  --popover: 0 0% 8%;                     /* Popover backgrounds */
+  --popover-foreground: 0 0% 98%;         /* Popover text */
 
   /* 🧱 SPACING */
   --radius-sm: 0.5rem;
@@ -62,11 +62,11 @@ html, body {
   --radius-lg: 1rem;
   --radius-xl: 1.5rem;
 
-  /* 🌫️ NEUMORPHISM SHADOWS */
-  --shadow-neumorphism-light: 0 8px 16px rgba(255, 255, 255, 0.1);
-  --shadow-neumorphism-dark: 0 8px 16px rgba(0, 0, 0, 0.3);
-  --shadow-neumorphism-inset-light: inset 0 2px 4px rgba(255, 255, 255, 0.1);
-  --shadow-neumorphism-inset-dark: inset 0 2px 4px rgba(0, 0, 0, 0.3);
+  /* 🌫️ PREMIUM SHADOWS */
+  --shadow-premium: 0 8px 32px rgba(0, 0, 0, 0.3);
+  --shadow-premium-lg: 0 16px 64px rgba(0, 0, 0, 0.4);
+  --shadow-glow: 0 0 0 1px rgba(255, 255, 255, 0.05);
+  --shadow-inner: inset 0 1px 0 rgba(255, 255, 255, 0.1);
 }
 }
 
@@ -109,39 +109,39 @@ html, body {
 }
 
 @layer components {
-  /* Neumorphism Card System */
+  /* 🎯 PREMIUM UNIFORM CARD SYSTEM */
   .premium-card {
     @apply relative rounded-xl border p-6;
     background: hsl(var(--card));
     border: 1px solid hsl(var(--card-border));
-    box-shadow: 
-      var(--shadow-neumorphism-dark),
-      var(--shadow-neumorphism-light);
+    box-shadow: var(--shadow-premium), var(--shadow-glow);
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   }
   
   .premium-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 
-      0 12px 20px rgba(0, 0, 0, 0.4),
-      0 4px 8px rgba(255, 255, 255, 0.1);
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-premium-lg), var(--shadow-glow);
     background: hsl(var(--card-hover));
+    border-color: hsl(var(--border-hover));
   }
   
   .glass-card {
     @apply premium-card;
     background: hsl(var(--card-secondary));
     border: 1px solid hsl(var(--card-border));
-    box-shadow: 
-      var(--shadow-neumorphism-inset-dark),
-      var(--shadow-neumorphism-inset-light);
+    box-shadow: var(--shadow-inner), var(--shadow-glow);
+  }
+
+  .glass-card:hover {
+    background: hsl(var(--card-hover));
+    transform: translateY(-2px);
   }
   
-  /* Premium Buttons */
+  /* 🎯 PREMIUM UNIFORM BUTTONS */
   .btn-premium {
     @apply inline-flex items-center justify-center rounded-lg px-6 py-3 font-semibold;
     @apply transition-all duration-300 ease-out;
-    @apply shadow-lg active:scale-95;
+    @apply active:scale-95;
     position: relative;
     overflow: hidden;
   }
@@ -151,37 +151,57 @@ html, body {
     background: hsl(var(--card));
     color: hsl(var(--foreground));
     border: 1px solid hsl(var(--border));
-    box-shadow: 
-      var(--shadow-neumorphism-dark),
-      var(--shadow-neumorphism-light);
+    box-shadow: var(--shadow-premium), var(--shadow-glow);
   }
   
   .btn-gradient:hover {
-    box-shadow: 
-      0 8px 16px rgba(0, 0, 0, 0.4),
-      0 2px 4px rgba(255, 255, 255, 0.1);
+    box-shadow: var(--shadow-premium-lg), var(--shadow-glow);
     transform: translateY(-2px);
     background: hsl(var(--card-hover));
+    border-color: hsl(var(--border-hover));
+  }
+
+  .btn-primary {
+    @apply btn-premium;
+    background: hsl(var(--primary));
+    color: hsl(var(--primary-foreground));
+    border: 1px solid hsl(var(--primary));
+    box-shadow: var(--shadow-premium);
+  }
+
+  .btn-primary:hover {
+    background: hsl(var(--primary) / 0.9);
+    box-shadow: var(--shadow-premium-lg);
+    transform: translateY(-2px);
   }
   
-  /* Status Badges */
+  /* 🎯 UNIFORM STATUS BADGES */
   .status-badge {
     @apply inline-flex items-center px-3 py-1 rounded-full text-xs font-medium;
+    background: hsl(var(--muted));
+    color: hsl(var(--foreground));
+    border: 1px solid hsl(var(--border));
   }
   
   .status-active {
-    @apply status-badge text-green-100;
-    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    @apply status-badge;
+    background: hsl(var(--success) / 0.1);
+    color: hsl(var(--success-foreground));
+    border-color: hsl(var(--success) / 0.2);
   }
   
   .status-inactive {
-    @apply status-badge text-gray-100;
-    background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%);
+    @apply status-badge;
+    background: hsl(var(--muted));
+    color: hsl(var(--muted-foreground));
+    border-color: hsl(var(--border));
   }
   
   .status-pending {
-    @apply status-badge text-yellow-100;
-    background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+    @apply status-badge;
+    background: hsl(var(--warning) / 0.1);
+    color: hsl(var(--warning-foreground));
+    border-color: hsl(var(--warning) / 0.2);
   }
 
   /* Modal positioning fixes */
@@ -224,36 +244,37 @@ html, body {
     transform: translateY(-4px);
   }
 
-  /* Form styling */
+  /* 🎯 UNIFORM FORM STYLING */
   .form-label {
-    @apply text-sm font-medium text-foreground;
+    @apply text-sm font-medium;
+    color: hsl(var(--foreground));
   }
 
   .input-premium {
-    @apply bg-card border border-border rounded-lg px-3 py-2 text-foreground placeholder:text-muted-foreground;
-    @apply focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent;
+    @apply rounded-lg px-3 py-2 font-medium;
+    @apply focus:outline-none focus:ring-2 focus:border-transparent;
     @apply transition-all duration-200;
+    background: hsl(var(--input));
+    border: 1px solid hsl(var(--border));
+    color: hsl(var(--foreground));
+  }
+
+  .input-premium::placeholder {
+    color: hsl(var(--muted-foreground));
   }
 
   .input-premium:hover {
-    @apply border-white/30;
+    border-color: hsl(var(--border-hover));
   }
 
-  /* Gradient utilities */
-  .gradient-primary {
-    background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+  .input-premium:focus {
+    border-color: hsl(var(--ring));
+    box-shadow: 0 0 0 2px hsl(var(--ring) / 0.2);
   }
 
-  .gradient-accent {
-    background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%);
-  }
-
-  .gradient-success {
-    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-  }
-
+  /* 🎯 MINIMAL GRADIENTS */
   .text-gradient {
-    background: linear-gradient(135deg, #8b5cf6 0%, #06b6d4 100%);
+    background: linear-gradient(135deg, hsl(var(--foreground)) 0%, hsl(var(--foreground-secondary)) 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
@@ -265,5 +286,24 @@ html, body {
 
   .text-foreground-secondary {
     @apply text-muted-foreground;
+  }
+
+  /* 🎯 PREMIUM SIDEBAR STYLING */
+  .sidebar-premium {
+    background: hsl(var(--background-secondary));
+    border-right: 1px solid hsl(var(--border));
+    box-shadow: var(--shadow-premium);
+  }
+
+  /* 🎯 UNIFORM PAGE BACKGROUNDS */
+  .page-container {
+    background: hsl(var(--background));
+    min-height: 100vh;
+  }
+
+  .content-area {
+    background: hsl(var(--background-secondary));
+    border-radius: var(--radius-lg);
+    border: 1px solid hsl(var(--border));
   }
 }

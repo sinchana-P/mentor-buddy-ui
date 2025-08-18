@@ -94,13 +94,13 @@ export default function MentorCard({ mentor }: MentorCardProps) {
 
   const getDomainColor = (domain: string) => {
     const colors = {
-      frontend: 'bg-white/10 text-blue-300',
-      backend: 'bg-white/10 text-green-300',
-      devops: 'bg-white/10 text-purple-300',
-      qa: 'bg-white/10 text-yellow-300',
-      hr: 'bg-white/10 text-red-300',
+      frontend: 'bg-card text-foreground',
+      backend: 'bg-card text-foreground',
+      devops: 'bg-card text-foreground',
+      qa: 'bg-card text-foreground',
+      hr: 'bg-card text-foreground',
     };
-    return colors[domain as keyof typeof colors] || 'bg-white/10 text-gray-300';
+    return colors[domain as keyof typeof colors] || 'bg-card text-foreground';
   };
 
   return (
@@ -116,23 +116,15 @@ export default function MentorCard({ mentor }: MentorCardProps) {
       >
         {/* Header */}
         <div className="text-center mb-4">
-          <Avatar className="w-16 h-16 mx-auto mb-3 ring-2 ring-white/10">
-            <AvatarImage src={mentor.user?.avatarUrl} alt={mentor.user?.name || 'Mentor'} />
-            <AvatarFallback className="text-sm font-semibold bg-gradient-to-br from-white/20 to-white/10 text-white">
+          <div className="w-16 h-16 mx-auto mb-3 ring-1 ring-border bg-card rounded-full flex items-center justify-center">
+            <span className="text-lg font-bold text-foreground">
               {mentor.user?.name ? mentor.user.name.split(' ').map(n => n[0]).join('') : 'M'}
-            </AvatarFallback>
-          </Avatar>
+            </span>
+          </div>
           
-          <h3 className="text-lg font-semibold mb-1 text-white truncate">{mentor.user?.name || 'Unknown Mentor'}</h3>
-          <p className="text-white/60 text-xs mb-2 truncate" title={mentor.expertise}>{mentor.expertise}</p>
-          <div className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${
-            mentor.user?.domainRole === 'frontend' ? 'bg-white/10 text-blue-300' :
-            mentor.user?.domainRole === 'backend' ? 'bg-white/10 text-green-300' :
-            mentor.user?.domainRole === 'devops' ? 'bg-white/10 text-purple-300' :
-            mentor.user?.domainRole === 'qa' ? 'bg-white/10 text-yellow-300' :
-            mentor.user?.domainRole === 'hr' ? 'bg-white/10 text-red-300' :
-            'bg-white/10 text-gray-300'
-          }`}>
+          <h3 className="text-lg font-semibold mb-1 text-foreground truncate">{mentor.user?.name || 'Unknown Mentor'}</h3>
+          <p className="text-muted-foreground text-xs mb-2 truncate" title={mentor.expertise}>{mentor.expertise}</p>
+          <div className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ring-1 ring-border ${getDomainColor(mentor.user?.domainRole || '')}`}>
             {mentor.user?.domainRole || 'Unknown'}
           </div>
         </div>
