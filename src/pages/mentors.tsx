@@ -97,23 +97,36 @@ export default function MentorsPage() {
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, ease: "easeOut" }}
-          className="premium-card mb-8"
+          className="premium-card"
         >
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-6 space-y-4 lg:space-y-0">
             <div className="space-y-3">
-              <div className="flex items-start gap-4">
-                <div className="w-12 h-12 bg-card rounded-xl flex items-center justify-center mt-1 ring-1 ring-border">
-                  <Crown className="w-6 h-6 text-foreground" />
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-card rounded-xl flex items-center justify-center ring-1 ring-border">
+                  <Crown className="w-5 h-5 text-foreground" />
                 </div>
-                <div className="flex-1">
-                  <h1 className="text-3xl font-bold text-foreground mb-2">Mentors</h1>
-                  <div className="flex items-center gap-2">
+                <div>
+                  <h1 className="text-3xl font-bold text-foreground">Mentors</h1>
+                  <div className="flex items-center gap-2 mt-1">
                     <Sparkles className="w-4 h-4 text-foreground" />
                     <p className="text-muted-foreground">Premium mentor management system</p>
                   </div>
                 </div>
               </div>
             </div>
+            
+            {/* Stats Summary */}
+            <div className="flex items-center gap-4">
+              <div className="text-center px-4 py-2 premium-card rounded-lg">
+                <p className="text-2xl font-bold text-foreground">{mentors.length}</p>
+                <p className="text-xs text-muted-foreground">Total</p>
+              </div>
+              <div className="text-center px-4 py-2 premium-card rounded-lg">
+                <p className="text-2xl font-bold text-foreground">{mentors.filter(m => m.isActive).length}</p>
+                <p className="text-xs text-muted-foreground">Active</p>
+              </div>
+            </div>
+          </div>
             <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
               <DialogTrigger asChild>
                 <button className="btn-gradient hover-lift flex items-center gap-2">
@@ -237,17 +250,17 @@ export default function MentorsPage() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2, duration: 0.6 }}
-          className="premium-card mb-8"
+          className="premium-card"
         >
           <div className="flex items-center gap-3 mb-6">
-            <div className="w-8 h-8 gradient-accent rounded-lg flex items-center justify-center">
-              <Filter className="w-4 h-4 text-white" />
+            <div className="w-8 h-8 bg-card rounded-lg flex items-center justify-center ring-1 ring-border">
+              <Filter className="w-4 h-4 text-foreground" />
             </div>
-            <h2 className="text-lg font-semibold text-premium">Filter & Search</h2>
+            <h2 className="text-lg font-semibold text-foreground">Filter & Search</h2>
           </div>
           <div className="flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-4">
             <div className="relative flex-1">
-              <Search className="absolute left-3 top-3 h-4 w-4 text-white/40" />
+              <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
               <input
                 className="input-premium pl-10 w-full"
                 placeholder="Search mentors by name, expertise, or domain..."
