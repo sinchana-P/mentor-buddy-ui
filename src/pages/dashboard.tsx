@@ -7,14 +7,24 @@ import StatsCard from '@/components/StatsCard';
 import RecentActivities from '@/components/RecentActivities';
 import { useLocation } from 'wouter';
 import { Users, GraduationCap, BarChart3, Presentation, University, TrendingUp, Zap, Target, Award, Clock } from 'lucide-react';
-import { useDashboardStats, useDashboardActivity } from '@/hooks/useApi';
+import { useGetDashboardStatsQuery, useGetDashboardActivityQuery } from '@/api/apiSlice';
 
 export default function DashboardPage() {
   const { user } = useAuth();
   const [, setLocation] = useLocation();
 
-  const { data: stats = {} as any } = useDashboardStats();
-  const { data: recentActivity = [] } = useDashboardActivity();
+  // Use RTK Query with polling for real-time updates
+  const { data: stats = {} as any, refetch: refetchStats } = useGetDashboardStatsQuery(undefined, {
+    pollingInterval: 30000, // Poll every 30 seconds
+    refetchOnFocus: true,
+    refetchOnReconnect: true,
+  });
+  
+  const { data: recentActivity = [], refetch: refetchActivity } = useGetDashboardActivityQuery(undefined, {
+    pollingInterval: 15000, // Poll every 15 seconds for activities
+    refetchOnFocus: true,
+    refetchOnReconnect: true,
+  });
 
   const roleCards = [
     {

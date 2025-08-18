@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Loader2 } from 'lucide-react';
 import { useBuddies } from '@/hooks/useApi';
 import { useToast } from '@/hooks/use-toast';
+import { authenticatedFetch } from '@/lib/api-utils';
 import type { Buddy } from '../types';
 
 interface AssignBuddyModalProps {
@@ -29,11 +30,8 @@ export default function AssignBuddyModal({ isOpen, onClose, mentorId, mentorName
     
     setIsAssigning(true);
     try {
-      const response = await fetch(`http://localhost:3000/api/buddies/${selectedBuddyId}/assign-mentor`, {
+      const response = await authenticatedFetch(`/api/buddies/${selectedBuddyId}/assign-mentor`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
         body: JSON.stringify({ mentorId }),
       });
 

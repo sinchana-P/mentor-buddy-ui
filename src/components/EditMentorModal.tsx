@@ -7,6 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
+import { authenticatedFetch } from '@/lib/api-utils';
 
 interface EditMentorModalProps {
   isOpen: boolean;
@@ -30,11 +31,8 @@ export default function EditMentorModal({ isOpen, onClose, mentor }: EditMentorM
     e.preventDefault();
     setIsUpdating(true);
     try {
-      const response = await fetch(`http://localhost:3000/api/mentors/${mentor.id}`, {
+      const response = await authenticatedFetch(`/api/mentors/${mentor.id}`, {
         method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
         body: JSON.stringify(formData),
       });
 

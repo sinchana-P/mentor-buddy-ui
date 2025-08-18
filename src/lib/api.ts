@@ -11,6 +11,11 @@ export class ApiClient {
     this.baseUrl = baseUrl;
   }
 
+  private getAuthHeaders(): Record<string, string> {
+    const token = localStorage.getItem('auth_token');
+    return token ? { 'Authorization': `Bearer ${token}` } : {};
+  }
+
   async request<T>(
     endpoint: string,
     options: RequestInit = {}
@@ -20,6 +25,7 @@ export class ApiClient {
     const config: RequestInit = {
       headers: {
         'Content-Type': 'application/json',
+        ...this.getAuthHeaders(),
         ...options.headers,
       },
       ...options,
@@ -29,6 +35,13 @@ export class ApiClient {
       const response = await fetch(url, config);
       
       if (!response.ok) {
+        if (response.status === 401) {
+          // Token is invalid, clear auth data and redirect to login
+          localStorage.removeItem('auth_token');
+          localStorage.removeItem('auth_user');
+          window.location.href = '/auth';
+          return Promise.reject(new Error('Authentication failed'));
+        }
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 

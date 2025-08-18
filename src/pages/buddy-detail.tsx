@@ -13,6 +13,7 @@ import { Input } from '@/components/ui/input';
 import { ArrowLeft, Calendar, CheckCircle, Clock, GitBranch, Globe } from 'lucide-react';
 import { Link } from 'wouter';
 import { useToast } from '@/hooks/use-toast';
+import { authenticatedFetch } from '@/lib/api-utils';
 
 export default function BuddyDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -114,11 +115,8 @@ export default function BuddyDetailPage() {
   const updateProgress = async (data: any) => {
     setIsUpdatingProgress(true);
     try {
-      const response = await fetch(`http://localhost:3000/api/buddies/${id}/progress/${data.topicId}`, {
+      const response = await authenticatedFetch(`/api/buddies/${id}/progress/${data.topicId}`, {
         method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
         body: JSON.stringify(data),
       });
 

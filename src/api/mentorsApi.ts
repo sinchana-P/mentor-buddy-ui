@@ -53,9 +53,12 @@ export const mentorsApi = apiSlice.injectEndpoints({
         method: 'PATCH',
         body: mentorData,
       }),
-      invalidatesTags: (result, error, { id }) => [
+      invalidatesTags: (_, __, { id }) => [
         { type: 'Mentor', id },
         'Mentors',
+        'DashboardStats',
+        'DashboardActivity',
+        'Users'
       ],
     }),
     
@@ -64,7 +67,13 @@ export const mentorsApi = apiSlice.injectEndpoints({
         url: `/api/mentors/${id}`,
         method: 'DELETE',
       }),
-      invalidatesTags: ['Mentors'],
+      invalidatesTags: [
+        'Mentors', 
+        'DashboardStats', 
+        'DashboardActivity', 
+        'Users', 
+        'Buddies'
+      ],
     }),
   }),
 });

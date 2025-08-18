@@ -6,13 +6,16 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { Users, Mail } from 'lucide-react';
+import { Users } from 'lucide-react';
+import { useLocation } from 'wouter';
 
 export default function AuthPage() {
-  const { signIn, signUp, signInWithMagicLink } = useAuth();
+  const { signIn, signUp } = useAuth();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
+  const [, setLocation] = useLocation();
 
   const [signInData, setSignInData] = useState({
     email: '',
@@ -23,9 +26,9 @@ export default function AuthPage() {
     name: '',
     email: '',
     password: '',
+    role: 'buddy' as 'manager' | 'mentor' | 'buddy',
+    domainRole: 'frontend' as 'frontend' | 'backend' | 'fullstack' | 'devops' | 'qa' | 'hr',
   });
-
-  const [magicLinkEmail, setMagicLinkEmail] = useState('');
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -44,6 +47,7 @@ export default function AuthPage() {
         title: "Welcome back!",
         description: "You have been signed in successfully.",
       });
+      setLocation('/dashboard');
     }
 
     setLoading(false);
@@ -53,7 +57,13 @@ export default function AuthPage() {
     e.preventDefault();
     setLoading(true);
 
-    const { error } = await signUp(signUpData.email, signUpData.password, signUpData.name);
+    const { error } = await signUp(
+      signUpData.email, 
+      signUpData.password, 
+      signUpData.name, 
+      signUpData.role, 
+      signUpData.domainRole
+    );
 
     if (error) {
       toast({
@@ -64,30 +74,9 @@ export default function AuthPage() {
     } else {
       toast({
         title: "Account created!",
-        description: "Please check your email to verify your account.",
+        description: "Welcome to Mentor-Buddy! You are now logged in.",
       });
-    }
-
-    setLoading(false);
-  };
-
-  const handleMagicLink = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-
-    const { error } = await signInWithMagicLink(magicLinkEmail);
-
-    if (error) {
-      toast({
-        title: "Magic Link Failed",
-        description: error,
-        variant: "destructive",
-      });
-    } else {
-      toast({
-        title: "Magic link sent!",
-        description: "Check your email for the login link.",
-      });
+      setLocation('/dashboard');
     }
 
     setLoading(false);
@@ -128,6 +117,7 @@ export default function AuthPage() {
                       placeholder="Enter your email"
                       value={signInData.email}
                       onChange={(e) => setSignInData({ ...signInData, email: e.target.value })}
+                      autoComplete="email"
                       required
                     />
                   </div>
@@ -139,38 +129,12 @@ export default function AuthPage() {
                       placeholder="Enter your password"
                       value={signInData.password}
                       onChange={(e) => setSignInData({ ...signInData, password: e.target.value })}
+                      autoComplete="current-password"
                       required
                     />
                   </div>
                   <Button type="submit" className="w-full" disabled={loading}>
                     {loading ? "Signing in..." : "Sign In"}
-                  </Button>
-                </form>
-
-                <div className="relative">
-                  <div className="absolute inset-0 flex items-center">
-                    <span className="w-full border-t" />
-                  </div>
-                  <div className="relative flex justify-center text-xs uppercase">
-                    <span className="bg-background px-2 text-muted-foreground">Or</span>
-                  </div>
-                </div>
-
-                <form onSubmit={handleMagicLink} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="magic-email">Email for Magic Link</Label>
-                    <Input
-                      id="magic-email"
-                      type="email"
-                      placeholder="Enter your email"
-                      value={magicLinkEmail}
-                      onChange={(e) => setMagicLinkEmail(e.target.value)}
-                      required
-                    />
-                  </div>
-                  <Button type="submit" variant="outline" className="w-full" disabled={loading}>
-                    <Mail className="w-4 h-4 mr-2" />
-                    Send Magic Link
                   </Button>
                 </form>
               </TabsContent>
@@ -185,6 +149,7 @@ export default function AuthPage() {
                       placeholder="Enter your full name"
                       value={signUpData.name}
                       onChange={(e) => setSignUpData({ ...signUpData, name: e.target.value })}
+                      autoComplete="name"
                       required
                     />
                   </div>
@@ -196,6 +161,7 @@ export default function AuthPage() {
                       placeholder="Enter your email"
                       value={signUpData.email}
                       onChange={(e) => setSignUpData({ ...signUpData, email: e.target.value })}
+                      autoComplete="email"
                       required
                     />
                   </div>
@@ -204,11 +170,47 @@ export default function AuthPage() {
                     <Input
                       id="signup-password"
                       type="password"
-                      placeholder="Create a password"
+                      placeholder="Create a password (min 8 chars, include uppercase & special char)"
                       value={signUpData.password}
                       onChange={(e) => setSignUpData({ ...signUpData, password: e.target.value })}
+                      autoComplete="new-password"
                       required
                     />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="signup-role">User Role</Label>
+                    <Select 
+                      value={signUpData.role} 
+                      onValueChange={(value) => setSignUpData({ ...signUpData, role: value as any })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select your role" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="buddy">Buddy (Learner)</SelectItem>
+                        <SelectItem value="mentor">Mentor</SelectItem>
+                        <SelectItem value="manager">Manager/CEO/COO</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="signup-domain">Domain Expertise</Label>
+                    <Select 
+                      value={signUpData.domainRole} 
+                      onValueChange={(value) => setSignUpData({ ...signUpData, domainRole: value as any })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select your domain" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="frontend">Frontend Development</SelectItem>
+                        <SelectItem value="backend">Backend Development</SelectItem>
+                        <SelectItem value="fullstack">Fullstack Development</SelectItem>
+                        <SelectItem value="devops">DevOps</SelectItem>
+                        <SelectItem value="qa">Quality Assurance</SelectItem>
+                        <SelectItem value="hr">Human Resources</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
                   <Button type="submit" className="w-full" disabled={loading}>
                     {loading ? "Creating account..." : "Create Account"}

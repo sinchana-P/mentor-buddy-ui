@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/hooks/use-toast';
+import { authenticatedFetch } from '@/lib/api-utils';
 
 interface Topic {
   id: string;
@@ -25,12 +26,9 @@ export default function TechnicalChecklist({ buddyId, progress }: TechnicalCheck
   const updateProgress = async ({ topicId, checked }: { topicId: string; checked: boolean }) => {
     setIsUpdating(true);
     try {
-      const response = await fetch(`http://localhost:3000/api/buddies/${buddyId}/progress/${topicId}`, {
+      const response = await authenticatedFetch(`/api/buddies/${buddyId}/progress/${topicId}`, {
         method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ checked }),
+        body: JSON.stringify({ topicId, checked }),
       });
 
       if (response.ok) {

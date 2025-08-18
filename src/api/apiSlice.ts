@@ -1,15 +1,38 @@
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 import { API_BASE_URL } from '../config/constants';
 
-// Create our baseQuery instance
-const baseQuery = fetchBaseQuery({
+// Create our baseQuery instance with auth handling
+const baseQueryWithAuth = fetchBaseQuery({
   baseUrl: API_BASE_URL,
   credentials: 'include',
+  timeout: 15000, // 15 second timeout
   prepareHeaders: (headers) => {
     headers.set('Content-Type', 'application/json');
+    
+    // Add auth token if available
+    const token = localStorage.getItem('auth_token');
+    if (token) {
+      headers.set('Authorization', `Bearer ${token}`);
+    }
+    
     return headers;
   },
 });
+
+// Wrapper to handle auth errors
+const baseQuery = async (args: any, api: any, extraOptions: any) => {
+  const result = await baseQueryWithAuth(args, api, extraOptions);
+  
+  // Handle 401 responses (invalid/expired tokens)
+  if (result.error && result.error.status === 401) {
+    // Clear auth data and redirect to login
+    localStorage.removeItem('auth_token');
+    localStorage.removeItem('auth_user');
+    window.location.href = '/auth';
+  }
+  
+  return result;
+};
 
 // Define types
 interface User {
@@ -96,6 +119,10 @@ export const apiSlice = createApi({
     'DashboardStats',
     'DashboardActivity',
   ],
+  keepUnusedDataFor: 30, // Keep data for 30 seconds instead of default 60
+  refetchOnFocus: true, // Refetch when window regains focus
+  refetchOnReconnect: true, // Refetch when network reconnects
+  refetchOnMountOrArgChange: 30, // Refetch if data is older than 30 seconds
   endpoints: (builder) => ({
     // Health check
     getHealth: builder.query<{ status: string; timestamp: string }, void>({
@@ -170,7 +197,7 @@ export const apiSlice = createApi({
         method: 'POST',
         body: buddy,
       }),
-      invalidatesTags: ['Buddies', 'DashboardStats'],
+      invalidatesTags: ['Buddies', 'DashboardStats', 'DashboardActivity', 'Users'],
     }),
 
     createMentor: builder.mutation<Mentor, { name: string; email: string; domainRole: string; expertise?: string; experience?: string }>({
@@ -179,7 +206,7 @@ export const apiSlice = createApi({
         method: 'POST',
         body: mentor,
       }),
-      invalidatesTags: ['Mentors', 'DashboardStats'],
+      invalidatesTags: ['Mentors', 'DashboardStats', 'DashboardActivity', 'Users'],
     }),
 
     createTask: builder.mutation<Task, { title: string; description: string; mentorId: string; buddyId: string; status?: string }>({
@@ -188,7 +215,7 @@ export const apiSlice = createApi({
         method: 'POST',
         body: task,
       }),
-      invalidatesTags: ['Tasks', 'DashboardStats', 'DashboardActivity'],
+      invalidatesTags: ['Tasks', 'DashboardStats', 'DashboardActivity', 'Buddies', 'Mentors'],
     }),
 
     createResource: builder.mutation<Resource, { title: string; url: string; description: string; type: string; category: string; difficulty: string; duration: string; author: string; tags: string[] }>({
@@ -197,7 +224,7 @@ export const apiSlice = createApi({
         method: 'POST',
         body: resource,
       }),
-      invalidatesTags: ['Resources'],
+      invalidatesTags: ['Resources', 'DashboardActivity'],
     }),
 
     // Update mutations
@@ -207,7 +234,13 @@ export const apiSlice = createApi({
         method: 'PATCH',
         body: data,
       }),
-      invalidatesTags: (_result, _error, { id }) => [{ type: 'Mentor', id }, 'Mentors'],
+      invalidatesTags: (_, __, { id }) => [
+        { type: 'Mentor', id }, 
+        'Mentors', 
+        'DashboardStats', 
+        'DashboardActivity',
+        'Users'
+      ],
     }),
 
     updateBuddy: builder.mutation<Buddy, { id: string; data: Partial<{ name: string; email: string; domainRole: string; status: string; assignedMentorId: string }> }>({
@@ -216,7 +249,14 @@ export const apiSlice = createApi({
         method: 'PATCH',
         body: data,
       }),
-      invalidatesTags: (result, error, { id }) => [{ type: 'Buddy', id }, 'Buddies'],
+      invalidatesTags: (_, __, { id }) => [
+        { type: 'Buddy', id }, 
+        'Buddies', 
+        'DashboardStats', 
+        'DashboardActivity',
+        'Users',
+        'Mentors' // In case mentor assignment changed
+      ],
     }),
 
     updateTask: builder.mutation<Task, { id: string; data: Partial<{ title: string; description: string; status: string; dueDate: string }> }>({
@@ -225,7 +265,14 @@ export const apiSlice = createApi({
         method: 'PATCH',
         body: data,
       }),
-      invalidatesTags: (result, error, { id }) => [{ type: 'Task', id }, 'Tasks', 'DashboardStats'],
+      invalidatesTags: (_, __, { id }) => [
+        { type: 'Task', id }, 
+        'Tasks', 
+        'DashboardStats',
+        'DashboardActivity',
+        'Buddies',
+        'Mentors'
+      ],
     }),
 
     updateResource: builder.mutation<Resource, { id: string; data: Partial<{ title: string; url: string; description: string; type: string; category: string; difficulty: string; duration: string; author: string; tags: string[] }> }>({
@@ -234,7 +281,11 @@ export const apiSlice = createApi({
         method: 'PATCH',
         body: data,
       }),
-      invalidatesTags: (result, error, { id }) => [{ type: 'Resource', id }, 'Resources'],
+      invalidatesTags: (_, __, { id }) => [
+        { type: 'Resource', id }, 
+        'Resources',
+        'DashboardActivity'
+      ],
     }),
 
     // Delete mutations
@@ -243,7 +294,14 @@ export const apiSlice = createApi({
         url: `/api/mentors/${id}`,
         method: 'DELETE',
       }),
-      invalidatesTags: (_result, _error, id) => [{ type: 'Mentor', id }, 'Mentors', 'DashboardStats'],
+      invalidatesTags: (_, __, id) => [
+        { type: 'Mentor', id }, 
+        'Mentors', 
+        'DashboardStats',
+        'DashboardActivity',
+        'Users',
+        'Buddies' // Buddies might be affected if mentor was assigned
+      ],
     }),
 
     deleteBuddy: builder.mutation<void, string>({
@@ -251,7 +309,14 @@ export const apiSlice = createApi({
         url: `/api/buddies/${id}`,
         method: 'DELETE',
       }),
-      invalidatesTags: (result, error, id) => [{ type: 'Buddy', id }, 'Buddies', 'DashboardStats'],
+      invalidatesTags: (_, __, id) => [
+        { type: 'Buddy', id }, 
+        'Buddies', 
+        'DashboardStats',
+        'DashboardActivity',
+        'Users',
+        'Tasks' // Tasks assigned to this buddy
+      ],
     }),
 
     deleteTask: builder.mutation<void, string>({
@@ -259,7 +324,14 @@ export const apiSlice = createApi({
         url: `/api/tasks/${id}`,
         method: 'DELETE',
       }),
-      invalidatesTags: (result, error, id) => [{ type: 'Task', id }, 'Tasks', 'DashboardStats'],
+      invalidatesTags: (_, __, id) => [
+        { type: 'Task', id }, 
+        'Tasks', 
+        'DashboardStats',
+        'DashboardActivity',
+        'Buddies',
+        'Mentors'
+      ],
     }),
 
     deleteResource: builder.mutation<void, string>({
@@ -267,7 +339,11 @@ export const apiSlice = createApi({
         url: `/api/resources/${id}`,
         method: 'DELETE',
       }),
-      invalidatesTags: (result, error, id) => [{ type: 'Resource', id }, 'Resources'],
+      invalidatesTags: (_, __, id) => [
+        { type: 'Resource', id }, 
+        'Resources',
+        'DashboardActivity'
+      ],
     }),
   }),
 });

@@ -80,7 +80,7 @@ function Router({ theme, setTheme }: AppProps) {
         )} />
         
         <Route path="/buddies" component={() => (
-          <ProtectedRoute>
+          <ProtectedRoute requiredRoles={['manager', 'mentor']}>
             <Layout theme={theme} setTheme={setTheme}>
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
@@ -170,7 +170,7 @@ function Router({ theme, setTheme }: AppProps) {
         )} />
 
         <Route path="/analytics" component={() => (
-          <ProtectedRoute>
+          <ProtectedRoute requiredRoles={['manager', 'mentor']}>
             <Layout theme={theme} setTheme={setTheme}>
               <motion.div
                 initial={{ opacity: 0, y: 20 }}

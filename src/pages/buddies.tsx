@@ -1,6 +1,5 @@
 import { useState } from 'react';
-import { useBuddies } from '@/hooks/useApi';
-import { useCreateBuddyMutation } from '@/api/apiSlice';
+import { useGetBuddiesQuery, useCreateBuddyMutation } from '@/api/apiSlice';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -40,7 +39,12 @@ export default function BuddiesPage() {
     }
   });
 
-  const { data: buddies = [], isLoading } = useBuddies();
+  // Use RTK Query with real-time updates
+  const { data: buddies = [], isLoading, refetch } = useGetBuddiesQuery(undefined, {
+    pollingInterval: 60000, // Poll every 60 seconds
+    refetchOnFocus: true,
+    refetchOnReconnect: true,
+  });
 
   const [createBuddy, { isLoading: isCreating }] = useCreateBuddyMutation();
 

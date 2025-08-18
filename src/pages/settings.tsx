@@ -193,6 +193,7 @@ export default function Settings() {
                   type="email"
                   className="input-premium opacity-50 cursor-not-allowed"
                   value={profileData.email}
+                  autoComplete="email"
                   disabled
                 />
                 <p className="text-xs text-white/50">Email cannot be changed</p>
@@ -337,6 +338,7 @@ export default function Settings() {
                 type="password"
                 className="input-premium"
                 placeholder="Enter your current password"
+                autoComplete="current-password"
               />
             </div>
 
@@ -347,6 +349,7 @@ export default function Settings() {
                 type="password"
                 className="input-premium"
                 placeholder="Enter your new password"
+                autoComplete="new-password"
               />
             </div>
 
@@ -357,6 +360,7 @@ export default function Settings() {
                 type="password"
                 className="input-premium"
                 placeholder="Confirm your new password"
+                autoComplete="new-password"
               />
             </div>
 

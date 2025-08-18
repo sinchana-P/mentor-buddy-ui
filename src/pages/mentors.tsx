@@ -10,8 +10,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Textarea } from '@/components/ui/textarea';
 import MentorCard from '@/components/MentorCard';
 import { Plus, Search, UserCheck, Filter, Star, Sparkles, Crown, Users } from 'lucide-react';
-import { useMentors } from '@/hooks/useApi';
-import { useCreateMentorMutation } from '@/api/apiSlice';
+import { useGetMentorsQuery, useCreateMentorMutation } from '@/api/apiSlice';
 import { useToast } from '@/hooks/use-toast';
 
 const mentorFormSchema = z.object({
@@ -42,7 +41,12 @@ export default function MentorsPage() {
     }
   });
 
-  const { data: mentors = [], isLoading } = useMentors();
+  // Use RTK Query with real-time updates
+  const { data: mentors = [], isLoading, refetch } = useGetMentorsQuery(undefined, {
+    pollingInterval: 60000, // Poll every 60 seconds
+    refetchOnFocus: true,
+    refetchOnReconnect: true,
+  });
 
   const [createMentor] = useCreateMentorMutation();
 
