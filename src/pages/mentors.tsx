@@ -127,13 +127,14 @@ export default function MentorsPage() {
               </div>
             </div>
           </div>
-            <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-              <DialogTrigger asChild>
-                <button className="btn-gradient hover-lift flex items-center gap-2">
-                  <Plus className="w-4 h-4" />
-                  Add Mentor
-                </button>
-              </DialogTrigger>
+          
+          <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+            <DialogTrigger asChild>
+              <button className="btn-gradient hover-lift flex items-center gap-2">
+                <Plus className="w-4 h-4" />
+                Add Mentor
+              </button>
+            </DialogTrigger>
             <DialogContent className="sm:max-w-[500px] bg-card border border-white/10 p-6 rounded-xl">
               <DialogHeader>
                 <div className="flex items-center gap-3 mb-4">
@@ -243,7 +244,7 @@ export default function MentorsPage() {
               </Form>
             </DialogContent>
           </Dialog>
-        </div>
+        </motion.div>
 
         {/* Premium Filters */}
         <motion.div
@@ -347,6 +348,6 @@ export default function MentorsPage() {
           </div>
         </motion.div>
       </motion.div>
-      </motion.div>
     </div>
-)}
+  );
+}
