@@ -1,7 +1,6 @@
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Menu, Bell, Settings } from 'lucide-react';
+import { Menu, Bell } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 
 export function TopBar() {

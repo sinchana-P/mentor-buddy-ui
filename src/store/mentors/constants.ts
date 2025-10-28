@@ -1,0 +1,9 @@
+export const SET_MENTORS = "mentors/SET_MENTORS" as const;
+export const ADD_MENTOR = "mentors/ADD_MENTOR" as const;
+export const UPDATE_MENTOR = "mentors/UPDATE_MENTOR" as const;
+export const DELETE_MENTOR = "mentors/DELETE_MENTOR" as const;
+export const SET_SELECTED_MENTOR = "mentors/SET_SELECTED_MENTOR" as const;
+export const SET_MENTOR_BUDDIES = "mentors/SET_MENTOR_BUDDIES" as const;
+export const SET_LOADING = "mentors/SET_LOADING" as const;
+export const SET_ERROR = "mentors/SET_ERROR" as const;
+export const CLEAR_ERROR = "mentors/CLEAR_ERROR" as const;

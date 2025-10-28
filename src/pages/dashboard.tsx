@@ -1,30 +1,30 @@
 import { motion } from 'framer-motion';
 import { useAuth } from '@/hooks/useAuth';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import StatsCard from '@/components/StatsCard';
 import RecentActivities from '@/components/RecentActivities';
 import { useLocation } from 'wouter';
 import { Users, GraduationCap, BarChart3, Presentation, University, TrendingUp, Zap, Target, Award, Clock } from 'lucide-react';
-import { useGetDashboardStatsQuery, useGetDashboardActivityQuery } from '@/api/apiSlice';
+import { useGetDashboardStatsQuery, useGetDashboardActivityQuery } from '@/api/dashboardApi';
 
 export default function DashboardPage() {
   const { user } = useAuth();
   const [, setLocation] = useLocation();
 
   // Use RTK Query with polling for real-time updates
-  const { data: stats = {} as any, refetch: refetchStats } = useGetDashboardStatsQuery(undefined, {
+  const { data: stats, isLoading: statsLoading, error: statsError } = useGetDashboardStatsQuery(undefined, {
     pollingInterval: 30000, // Poll every 30 seconds
     refetchOnFocus: true,
     refetchOnReconnect: true,
   });
   
-  const { data: recentActivity = [], refetch: refetchActivity } = useGetDashboardActivityQuery(undefined, {
+  const { data: recentActivity = [], isLoading: activityLoading, error: activityError } = useGetDashboardActivityQuery(undefined, {
     pollingInterval: 15000, // Poll every 15 seconds for activities
     refetchOnFocus: true,
     refetchOnReconnect: true,
   });
+
+  // Debug logs to see what we're getting
+  console.log('Dashboard stats:', stats, 'Loading:', statsLoading, 'Error:', statsError);
+  console.log('Recent activity:', recentActivity, 'Loading:', activityLoading, 'Error:', activityError);
 
   const roleCards = [
     {
@@ -36,8 +36,8 @@ export default function DashboardPage() {
       bgColor: 'bg-blue-500/20',
       borderColor: 'hover:border-blue-500',
       stats: {
-        total: stats?.mentors?.total || 0,
-        active: stats?.mentors?.active || 0,
+        total: stats?.totalMentors || 0,
+        active: stats?.totalMentors || 0, // For now, assume all mentors are active
       },
     },
     {
@@ -49,8 +49,8 @@ export default function DashboardPage() {
       bgColor: 'bg-green-500/20',
       borderColor: 'hover:border-green-500',
       stats: {
-        total: stats?.buddies?.total || 0,
-        active: stats?.buddies?.active || 0,
+        total: stats?.totalBuddies || 0,
+        active: stats?.totalBuddies || 0, // For now, assume all buddies are active
       },
     },
     {
@@ -62,8 +62,8 @@ export default function DashboardPage() {
       bgColor: 'bg-purple-500/20',
       borderColor: 'hover:border-purple-500',
       stats: {
-        reports: stats?.analytics?.reports || 0,
-        growth: stats?.analytics?.growth || '+0%',
+        reports: stats?.completedTasks || 0,
+        growth: '+0%', // This can be calculated later
       },
     },
   ];
@@ -116,8 +116,12 @@ export default function DashboardPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-muted-foreground text-sm font-medium">Total Mentors</p>
-                <p className="text-3xl font-bold text-foreground">{stats?.totalMentors || 8}</p>
-                <p className="text-muted-foreground text-xs mt-1">0% from last month</p>
+                <p className="text-3xl font-bold text-foreground">
+                  {statsLoading ? '...' : (stats?.totalMentors ?? 0)}
+                </p>
+                <p className="text-muted-foreground text-xs mt-1">
+                  {statsError ? 'Error loading data' : '0% from last month'}
+                </p>
               </div>
               <div className="w-12 h-12 bg-card rounded-lg flex items-center justify-center ring-1 ring-border">
                 <Users className="w-6 h-6 text-foreground" />
@@ -134,8 +138,12 @@ export default function DashboardPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-muted-foreground text-sm font-medium">Active Buddies</p>
-                <p className="text-3xl font-bold text-foreground">{stats?.totalBuddies || 0}</p>
-                <p className="text-muted-foreground text-xs mt-1">0% from last month</p>
+                <p className="text-3xl font-bold text-foreground">
+                  {statsLoading ? '...' : (stats?.activeBuddies ?? 0)}
+                </p>
+                <p className="text-muted-foreground text-xs mt-1">
+                  {statsError ? 'Error loading data' : '0% from last month'}
+                </p>
               </div>
               <div className="w-12 h-12 bg-white/10 rounded-lg flex items-center justify-center">
                 <GraduationCap className="w-6 h-6 text-foreground" />
@@ -152,8 +160,12 @@ export default function DashboardPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-muted-foreground text-sm font-medium">Tasks this Week</p>
-                <p className="text-3xl font-bold text-foreground">{stats?.activeTasks || 0}</p>
-                <p className="text-muted-foreground text-xs mt-1">vs two tasks</p>
+                <p className="text-3xl font-bold text-foreground">
+                  {statsLoading ? '...' : (stats?.activeTasks ?? 0)}
+                </p>
+                <p className="text-muted-foreground text-xs mt-1">
+                  {statsError ? 'Error loading data' : 'vs two tasks'}
+                </p>
               </div>
               <div className="w-12 h-12 bg-white/10 rounded-lg flex items-center justify-center">
                 <Target className="w-6 h-6 text-foreground" />
@@ -170,8 +182,12 @@ export default function DashboardPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-muted-foreground text-sm font-medium">Completion Rate</p>
-                <p className="text-3xl font-bold text-foreground">{stats?.completionRate || 79}%</p>
-                <p className="text-muted-foreground text-xs mt-1">vs 86% last month</p>
+                <p className="text-3xl font-bold text-foreground">
+                  {statsLoading ? '...' : `${stats?.completionRate ?? 0}%`}
+                </p>
+                <p className="text-muted-foreground text-xs mt-1">
+                  {statsError ? 'Error loading data' : 'vs 86% last month'}
+                </p>
               </div>
               <div className="w-12 h-12 bg-white/10 rounded-lg flex items-center justify-center">
                 <TrendingUp className="w-6 h-6 text-foreground" />

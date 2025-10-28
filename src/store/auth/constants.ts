@@ -1,0 +1,9 @@
+export const LOGIN_USER = "auth/LOGIN_USER" as const;
+export const REGISTER_USER = "auth/REGISTER_USER" as const;
+export const LOGOUT_USER = "auth/LOGOUT_USER" as const;
+export const SET_USER = "auth/SET_USER" as const;
+export const SET_TOKEN = "auth/SET_TOKEN" as const;
+export const UPDATE_USER = "auth/UPDATE_USER" as const;
+export const SET_LOADING = "auth/SET_LOADING" as const;
+export const SET_ERROR = "auth/SET_ERROR" as const;
+export const CLEAR_ERROR = "auth/CLEAR_ERROR" as const;

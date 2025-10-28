@@ -1,14 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Progress } from '@/components/ui/progress';
-import { Button } from '@/components/ui/button';
 import { MessageCircle, Edit, Trash2 } from 'lucide-react';
 import { useLocation } from 'wouter';
 import MessageModal from './MessageModal';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -17,24 +13,10 @@ import { useToast } from '@/hooks/use-toast';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import type { MentorRO } from '@/api/dto';
 
 interface MentorCardProps {
-  mentor: {
-    id: string;
-    user: {
-      name: string;
-      domainRole: string;
-      avatarUrl?: string;
-    } | null;
-    expertise: string;
-    experience: string;
-    responseRate: number;
-    isActive: boolean;
-    stats?: {
-      buddiesCount: number;
-      completedTasks: number;
-    };
-  };
+  mentor: MentorRO;
 }
 
 const mentorFormSchema = z.object({
@@ -42,6 +24,7 @@ const mentorFormSchema = z.object({
   domainRole: z.enum(['frontend', 'backend', 'devops', 'qa', 'hr']),
   expertise: z.string().min(10, 'Please describe expertise (minimum 10 characters)'),
   experience: z.string().min(10, 'Please describe experience (minimum 10 characters)'),
+  isActive: z.boolean().optional(),
 });
 
 export default function MentorCard({ mentor }: MentorCardProps) {
@@ -50,21 +33,35 @@ export default function MentorCard({ mentor }: MentorCardProps) {
   const { toast } = useToast();
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
-  
+
   const mentorForm = useForm({
     resolver: zodResolver(mentorFormSchema),
     defaultValues: {
       name: mentor.user?.name || '',
-      domainRole: mentor.user?.domainRole || 'frontend',
-      expertise: mentor.expertise,
-      experience: mentor.experience,
+      domainRole: (mentor.user?.domainRole || 'frontend') as 'frontend' | 'backend' | 'devops' | 'qa' | 'hr',
+      expertise: mentor.expertise || '',
+      experience: mentor.experience || '',
+      isActive: mentor.isActive ?? true,
     },
   });
 
-  const [updateMentor] = useUpdateMentorMutation();
-  const [deleteMentor] = useDeleteMentorMutation();
+  // Sync form values when mentor data changes or modal opens
+  useEffect(() => {
+    if (isEditOpen) {
+      mentorForm.reset({
+        name: mentor.user?.name || '',
+        domainRole: (mentor.user?.domainRole || 'frontend') as 'frontend' | 'backend' | 'devops' | 'qa' | 'hr',
+        expertise: mentor.expertise || '',
+        experience: mentor.experience || '',
+        isActive: mentor.isActive ?? true,
+      });
+    }
+  }, [isEditOpen, mentor, mentorForm]);
 
-  const handleUpdateMentor = async (data: any) => {
+  const [updateMentor, { isLoading: isUpdating }] = useUpdateMentorMutation();
+  const [deleteMentor, { isLoading: isDeleting }] = useDeleteMentorMutation();
+
+  const handleUpdateMentor = async (data: z.infer<typeof mentorFormSchema>) => {
     try {
       if (!mentor.id) {
         throw new Error('Mentor ID is missing');
@@ -72,9 +69,10 @@ export default function MentorCard({ mentor }: MentorCardProps) {
       await updateMentor({ id: mentor.id, mentorData: data }).unwrap();
       setIsEditOpen(false);
       toast({ title: 'Mentor updated', description: 'Mentor details updated.' });
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Failed to update mentor:', error);
-      toast({ title: 'Error', description: error?.message || 'Failed to update mentor', variant: 'destructive' });
+      const errorMessage = error instanceof Error ? error.message : 'Failed to update mentor';
+      toast({ title: 'Error', description: errorMessage, variant: 'destructive' });
     }
   };
 
@@ -83,7 +81,7 @@ export default function MentorCard({ mentor }: MentorCardProps) {
       await deleteMentor(mentor.id).unwrap();
       setIsDeleteOpen(false);
       toast({ title: 'Mentor deleted', description: 'Mentor has been removed.' });
-    } catch (error) {
+    } catch {
       toast({ title: 'Error', description: 'Failed to delete mentor', variant: 'destructive' });
     }
   };
@@ -109,9 +107,16 @@ export default function MentorCard({ mentor }: MentorCardProps) {
       transition={{ duration: 0.2 }}
       className="h-full" // Ensure full height for flex parent
     >
-      <div 
+      <div
         className="premium-card cursor-pointer h-full flex flex-col group relative" // Added group and relative
-        onClick={handleClick}
+        onClick={(e) => {
+          // Don't navigate if clicking on action buttons or if modal is open
+          if (isEditOpen || isDeleteOpen || isMessageModalOpen) {
+            e.stopPropagation();
+            return;
+          }
+          handleClick();
+        }}
         style={{ minHeight: '320px', maxHeight: '320px' }} // Fixed card dimensions
       >
         {/* Header */}
@@ -171,34 +176,154 @@ export default function MentorCard({ mentor }: MentorCardProps) {
           
           <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
             <DialogTrigger asChild>
-              <button 
+              <button
                 className="p-1.5 rounded-md bg-white/10 hover:bg-white/20 transition-colors text-white/60 hover:text-white"
                 onClick={(e) => { e.stopPropagation(); }}
               >
                 <Edit className="w-3.5 h-3.5" />
               </button>
             </DialogTrigger>
-            <DialogContent className="bg-card border border-white/10 p-6 rounded-xl">
-              <DialogHeader><DialogTitle className="text-white">Edit Mentor</DialogTitle></DialogHeader>
-              <form onSubmit={mentorForm.handleSubmit(handleUpdateMentor)} className="space-y-4">
-                <Input {...mentorForm.register('name')} placeholder="Full Name" className="input-premium" />
-                <Select value={mentorForm.watch('domainRole')} onValueChange={v => mentorForm.setValue('domainRole', v)}>
-                  <SelectTrigger className="input-premium"><SelectValue placeholder="Domain" /></SelectTrigger>
-                  <SelectContent className="premium-card border-white/10">
-                    <SelectItem value="frontend">Frontend</SelectItem>
-                    <SelectItem value="backend">Backend</SelectItem>
-                    <SelectItem value="devops">DevOps</SelectItem>
-                    <SelectItem value="qa">QA</SelectItem>
-                    <SelectItem value="hr">HR</SelectItem>
-                  </SelectContent>
-                </Select>
-                <Textarea {...mentorForm.register('expertise')} placeholder="Expertise" className="input-premium" />
-                <Textarea {...mentorForm.register('experience')} placeholder="Experience" className="input-premium" />
-                <div className="flex justify-end gap-2">
-                  <button type="button" className="px-4 py-2 rounded-lg border border-white/20 bg-white/5 hover:bg-white/10 transition-colors text-white/80 hover:text-white" onClick={() => setIsEditOpen(false)}>Cancel</button>
-                  <button type="submit" className="btn-gradient">Save</button>
-                </div>
-              </form>
+            <DialogContent
+              className="sm:max-w-[600px]"
+              // onPointerDownOutside={(e) => {
+              //   e.preventDefault();
+              //   e.stopPropagation();
+              // }}
+              // onInteractOutside={(e) => {
+              //   e.preventDefault();
+              //   e.stopPropagation();
+              // }}
+            >
+              <DialogHeader>
+                <DialogTitle>Edit Mentor Profile</DialogTitle>
+                <p className="text-sm text-muted-foreground">
+                  Update the mentor's information and preferences.
+                </p>
+              </DialogHeader>
+              <Form {...mentorForm}>
+                <form onSubmit={mentorForm.handleSubmit(handleUpdateMentor)} className="space-y-4 mt-4">
+                  <FormField
+                    control={mentorForm.control}
+                    name="name"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Full Name</FormLabel>
+                        <FormControl>
+                          <Input {...field} placeholder="Enter full name" required />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={mentorForm.control}
+                    name="domainRole"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Domain Role</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select domain role" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="frontend">Frontend</SelectItem>
+                            <SelectItem value="backend">Backend</SelectItem>
+                            <SelectItem value="devops">DevOps</SelectItem>
+                            <SelectItem value="qa">QA</SelectItem>
+                            <SelectItem value="hr">HR</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={mentorForm.control}
+                    name="expertise"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Expertise</FormLabel>
+                        <FormControl>
+                          <Textarea
+                            {...field}
+                            placeholder="Describe technical expertise and skills..."
+                            rows={3}
+                            required
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={mentorForm.control}
+                    name="experience"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Experience</FormLabel>
+                        <FormControl>
+                          <Textarea
+                            {...field}
+                            placeholder="Describe work experience and background..."
+                            rows={3}
+                            required
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={mentorForm.control}
+                    name="isActive"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Status</FormLabel>
+                        <Select
+                          onValueChange={(value) => field.onChange(value === 'active')}
+                          value={field.value ? 'active' : 'inactive'}
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select status" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="active">Active</SelectItem>
+                            <SelectItem value="inactive">Inactive</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <div className="flex justify-end gap-3 pt-4">
+                    <button
+                      type="button"
+                      className="px-6 py-2.5 rounded-lg border border-input bg-background hover:bg-accent hover:text-accent-foreground transition-colors"
+                      onClick={() => setIsEditOpen(false)}
+                      disabled={isUpdating}
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      className="px-6 py-2.5 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      disabled={isUpdating}
+                    >
+                      {isUpdating && <span className="mr-2">⏳</span>}
+                      {isUpdating ? 'Saving...' : 'Save Changes'}
+                    </button>
+                  </div>
+                </form>
+              </Form>
             </DialogContent>
           </Dialog>
           
@@ -212,11 +337,29 @@ export default function MentorCard({ mentor }: MentorCardProps) {
               </button>
             </DialogTrigger>
             <DialogContent className="bg-card border border-white/10 p-6 rounded-xl">
-              <DialogHeader><DialogTitle className="text-white">Delete Mentor</DialogTitle></DialogHeader>
-              <p className="text-white/80">Are you sure you want to delete this mentor?</p>
+              <DialogHeader>
+                <DialogTitle className="text-white text-xl">Delete Mentor</DialogTitle>
+              </DialogHeader>
+              <p className="text-white/80 py-4">
+                Are you sure you want to delete <span className="font-semibold text-white">{mentor.user?.name}</span>? This action cannot be undone.
+              </p>
               <div className="flex justify-end gap-2 mt-4">
-                <button type="button" className="px-4 py-2 rounded-lg border border-white/20 bg-white/5 hover:bg-white/10 transition-colors text-white/80 hover:text-white" onClick={() => setIsDeleteOpen(false)}>Cancel</button>
-                <button type="button" className="px-4 py-2 rounded-lg bg-red-500/20 hover:bg-red-500/30 transition-colors text-red-300 hover:text-red-200" onClick={handleDeleteMentor}>Delete</button>
+                <button
+                  type="button"
+                  className="px-4 py-2 rounded-lg border border-white/20 bg-white/5 hover:bg-white/10 transition-colors text-white/80 hover:text-white"
+                  onClick={() => setIsDeleteOpen(false)}
+                  disabled={isDeleting}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  className="px-4 py-2 rounded-lg bg-red-500/20 hover:bg-red-500/30 transition-colors text-red-300 hover:text-red-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                  onClick={handleDeleteMentor}
+                  disabled={isDeleting}
+                >
+                  {isDeleting ? 'Deleting...' : 'Delete'}
+                </button>
               </div>
             </DialogContent>
           </Dialog>

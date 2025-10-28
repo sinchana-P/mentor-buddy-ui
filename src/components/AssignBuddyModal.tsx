@@ -4,10 +4,9 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { Loader2 } from 'lucide-react';
-import { useBuddies } from '@/hooks/useApi';
+import { useGetBuddiesQuery, useAssignBuddyToMentorMutation } from '@/api/apiSlice';
 import { useToast } from '@/hooks/use-toast';
-import { authenticatedFetch } from '@/lib/api-utils';
-import type { Buddy } from '../types';
+import type { BuddyRO } from '@/api/dto';
 
 interface AssignBuddyModalProps {
   isOpen: boolean;
@@ -18,41 +17,35 @@ interface AssignBuddyModalProps {
 
 export default function AssignBuddyModal({ isOpen, onClose, mentorId, mentorName }: AssignBuddyModalProps) {
   const [selectedBuddyId, setSelectedBuddyId] = useState('');
-  const [isAssigning, setIsAssigning] = useState(false);
   const { toast } = useToast();
 
   // Fetch available buddies (not assigned to any mentor)
-  const { data: buddies = [], isLoading } = useBuddies();
-  const availableBuddies: Buddy[] = buddies.filter((b: any) => !b.assignedMentorId) as Buddy[];
+  const { data: buddies = [], isLoading } = useGetBuddiesQuery({});
+  const availableBuddies: BuddyRO[] = buddies.filter((b: BuddyRO) => !b.mentorId);
+
+  const [assignBuddyToMentor, { isLoading: isAssigning }] = useAssignBuddyToMentorMutation();
 
   const handleAssign = async () => {
     if (!selectedBuddyId) return;
     
-    setIsAssigning(true);
     try {
-      const response = await authenticatedFetch(`/api/buddies/${selectedBuddyId}/assign-mentor`, {
-        method: 'POST',
-        body: JSON.stringify({ mentorId }),
-      });
+      await assignBuddyToMentor({
+        buddyId: selectedBuddyId,
+        mentorId
+      }).unwrap();
 
-      if (response.ok) {
-        toast({
-          title: 'Success',
-          description: 'Buddy assigned to mentor successfully!'
-        });
-        onClose();
-        setSelectedBuddyId('');
-      } else {
-        throw new Error('Failed to assign buddy');
-      }
+      toast({
+        title: 'Success',
+        description: 'Buddy assigned to mentor successfully!'
+      });
+      onClose();
+      setSelectedBuddyId('');
     } catch (error) {
       toast({
         title: 'Error',
         description: 'Failed to assign buddy. Please try again.',
         variant: 'destructive'
       });
-    } finally {
-      setIsAssigning(false);
     }
   };
 
@@ -86,7 +79,7 @@ export default function AssignBuddyModal({ isOpen, onClose, mentorId, mentorName
                     No available buddies
                   </SelectItem>
                 ) : (
-                  availableBuddies.map((buddy: Buddy) => (
+                  availableBuddies.map((buddy: BuddyRO) => (
                     <SelectItem key={buddy.id} value={buddy.id}>
                       {buddy.user?.name || 'Unknown Buddy'} ({buddy.user?.domainRole || 'Unknown'})
                     </SelectItem>

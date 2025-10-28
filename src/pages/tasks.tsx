@@ -1,12 +1,7 @@
 import { useState } from 'react';
-import { useTasks, useBuddies } from '@/hooks/useApi';
-import { useCreateTaskMutation } from '@/api/apiSlice';
+import { useSelector } from 'react-redux';
+import { useGetTasksQuery, useGetBuddiesQuery, useCreateTaskMutation, useUpdateTaskMutation, useDeleteTaskMutation } from '@/api';
 import { motion } from 'framer-motion';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
@@ -15,6 +10,8 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useToast } from '@/hooks/use-toast';
+import type { RootState } from '../store';
+import type { TaskRO, BuddyRO } from '@/api/dto';
 
 const taskSchema = z.object({
   title: z.string().min(1, 'Title is required'),
@@ -32,6 +29,17 @@ export default function TasksPage() {
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
   const [deletingTaskId, setDeletingTaskId] = useState<string | null>(null);
   const { toast } = useToast();
+
+  // ✅ Use useSelector directly (your exact pattern) to read from Redux store
+  const tasks = useSelector((state: RootState) => state.tasks.tasks);
+  const isLoading = useSelector((state: RootState) => state.tasks.loading);
+
+  // ✅ RTK Query hooks for API operations (following your reference pattern)
+  const { data: tasksFromApi } = useGetTasksQuery({});
+  const { data: buddies = [], isLoading: buddiesLoading } = useGetBuddiesQuery({});
+  const [createTaskTrigger, { isLoading: isCreating }] = useCreateTaskMutation();
+  const [updateTaskTrigger, { isLoading: isUpdating }] = useUpdateTaskMutation();
+  const [deleteTaskTrigger, { isLoading: isDeleting }] = useDeleteTaskMutation();
 
   const form = useForm<TaskFormData>({
     resolver: zodResolver(taskSchema),
@@ -53,13 +61,10 @@ export default function TasksPage() {
     },
   });
 
-  const { data: tasks = [], isLoading } = useTasks();
-  const { data: buddies = [] } = useBuddies();
-  const [createTask, { isLoading: isCreating }] = useCreateTaskMutation();
-
   const onCreateTask = async (data: TaskFormData) => {
     try {
-      await createTask({
+      // ✅ Use RTK Query mutation trigger (following your reference pattern)
+      await createTaskTrigger({
         ...data,
         mentorId: '5c0ec8e4-e995-4b58-a9b6-32c518e3f730', // Demo mentor ID
       }).unwrap();
@@ -69,7 +74,7 @@ export default function TasksPage() {
         title: 'Success',
         description: 'Task created successfully!'
       });
-    } catch (error) {
+    } catch {
       toast({
         title: 'Error',
         description: 'Failed to create task. Please try again.',
@@ -78,10 +83,8 @@ export default function TasksPage() {
     }
   };
 
-  // TODO: Add edit and delete mutations when needed
-
   // Handle editing a task
-  const handleEditTask = (task: any) => {
+  const handleEditTask = (task: TaskRO) => {
     setEditingTaskId(task.id);
     editForm.reset({
       title: task.title,
@@ -92,20 +95,57 @@ export default function TasksPage() {
   };
 
   // Handle edit form submission
-  const onEditSubmit = (data: TaskFormData) => {
+  const onEditSubmit = async (data: TaskFormData) => {
     if (editingTaskId) {
-      // TODO: Implement edit functionality
-    console.log('Edit task:', editingTaskId, data);
+      try {
+        // ✅ Use RTK Query mutation trigger (following your reference pattern)
+        await updateTaskTrigger({
+          id: editingTaskId,
+          data: {
+            title: data.title,
+            description: data.description,
+            dueDate: data.dueDate || undefined,
+          }
+        }).unwrap();
+        setEditingTaskId(null);
+        editForm.reset();
+        toast({
+          title: 'Success',
+          description: 'Task updated successfully!'
+        });
+      } catch {
+        toast({
+          title: 'Error',
+          description: 'Failed to update task. Please try again.',
+          variant: 'destructive'
+        });
+      }
     }
   };
 
   // Handle delete confirmation
-  const handleDeleteTask = (taskId: string) => {
-    // TODO: Implement delete functionality
-    console.log('Delete task:', taskId);
+  const handleDeleteTask = async (taskId: string) => {
+    try {
+      // ✅ Use RTK Query mutation trigger (following your reference pattern)
+      await deleteTaskTrigger(taskId).unwrap();
+      setDeletingTaskId(null);
+      toast({
+        title: 'Success',
+        description: 'Task deleted successfully!'
+      });
+    } catch {
+      toast({
+        title: 'Error',
+        description: 'Failed to delete task. Please try again.',
+        variant: 'destructive'
+      });
+    }
   };
 
-  const filteredTasks = Array.isArray(tasks) ? tasks.filter((task: any) => {
+  // Use tasks from Redux store if available, otherwise fall back to RTK Query data
+  const tasksToDisplay = tasks.length > 0 ? tasks : (tasksFromApi || []);
+  
+  const filteredTasks = Array.isArray(tasksToDisplay) ? tasksToDisplay.filter((task: TaskRO) => {
     const matchesSearch = task.title.toLowerCase().includes(search.toLowerCase()) ||
                          task.description.toLowerCase().includes(search.toLowerCase());
     const matchesStatus = statusFilter === 'all' || task.status === statusFilter;
@@ -122,14 +162,6 @@ export default function TasksPage() {
     }
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'completed': return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200';
-      case 'in_progress': return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200';
-      case 'overdue': return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200';
-      default: return 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200';
-    }
-  };
 
   const onSubmit = (data: TaskFormData) => {
     onCreateTask(data);
@@ -262,9 +294,9 @@ export default function TasksPage() {
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent>
-                              {Array.isArray(buddies) && buddies.map((buddy: any) => (
+                              {Array.isArray(buddies) && buddies.map((buddy: BuddyRO) => (
                                 <SelectItem key={buddy.id} value={buddy.id}>
-                                  {buddy.user?.name || 'Unknown Buddy'} ({buddy.user?.domainRole || 'Unknown'})
+                                  {buddy.user?.name || buddy.name || 'Unknown Buddy'} ({buddy.user?.domainRole || buddy.domainRole || 'Unknown'})
                                 </SelectItem>
                               ))}
                             </SelectContent>
@@ -314,7 +346,7 @@ export default function TasksPage() {
 
       {/* Tasks List */}
       <div className="space-y-4">
-        {filteredTasks.map((task: any, index: number) => (
+        {filteredTasks.map((task: TaskRO, index: number) => (
           <motion.div
             key={task.id}
             initial={{ opacity: 0, y: 20 }}
@@ -353,7 +385,7 @@ export default function TasksPage() {
             <p className="text-white/70 mb-4">{task.description}</p>
             <div className="flex items-center justify-between text-sm text-white/60">
               <div className="flex items-center gap-4">
-                <span>Assigned to: {task.buddy?.user?.name || 'Unknown'}</span>
+                <span>Assigned to: {task.buddy?.name || 'Unknown'}</span>
                 {task.dueDate && (
                   <div className="flex items-center gap-1">
                     <Calendar className="h-4 w-4" />
@@ -461,9 +493,9 @@ export default function TasksPage() {
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {Array.isArray(buddies) && buddies.map((buddy: any) => (
+                        {Array.isArray(buddies) && buddies.map((buddy: BuddyRO) => (
                           <SelectItem key={buddy.id} value={buddy.id}>
-                            {buddy.user?.name || 'Unknown Buddy'} ({buddy.user?.domainRole || 'Unknown'})
+                            {buddy.user?.name || buddy.name || 'Unknown Buddy'} ({buddy.user?.domainRole || buddy.domainRole || 'Unknown'})
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -489,8 +521,8 @@ export default function TasksPage() {
                 <button type="button" onClick={() => setEditingTaskId(null)} className="px-4 py-2 rounded-lg bg-white/10 hover:bg-white/20 transition-colors text-white/80 hover:text-white">
                   Cancel
                 </button>
-                <button type="submit" disabled={false} className="btn-gradient">
-                  Save
+                <button type="submit" disabled={isUpdating} className="btn-gradient">
+                  {isUpdating ? 'Saving...' : 'Save'}
                 </button>
               </div>
               </form>
@@ -512,10 +544,10 @@ export default function TasksPage() {
             <button 
               type="button" 
               onClick={() => deletingTaskId && handleDeleteTask(deletingTaskId)} 
-              disabled={false}
+              disabled={isDeleting}
               className="px-4 py-2 rounded-lg bg-red-500/20 hover:bg-red-500/30 transition-colors text-red-400 hover:text-red-300 border border-red-500/30"
             >
-              Delete
+              {isDeleting ? 'Deleting...' : 'Delete'}
             </button>
           </div>
         </DialogContent>

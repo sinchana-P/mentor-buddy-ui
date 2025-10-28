@@ -27,17 +27,17 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
     { 
       value: 'dark' as Theme, 
       label: 'Dark Mode', 
-      description: 'Classic dark theme with deep blacks and whites' 
+      description: 'High contrast dark theme with optimal readability' 
     },
     { 
       value: 'navy' as Theme, 
       label: 'Navy Blue', 
-      description: 'Professional navy theme with blue accents' 
+      description: 'Professional navy theme with vibrant blue accents' 
     },
     { 
       value: 'light' as Theme, 
       label: 'Light Mode', 
-      description: 'Clean light theme with subtle grays' 
+      description: 'Elegant white shade palette with warm undertones' 
     },
   ];
 

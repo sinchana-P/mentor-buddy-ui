@@ -181,7 +181,7 @@ export default function AuthPage() {
                     <Label htmlFor="signup-role">User Role</Label>
                     <Select 
                       value={signUpData.role} 
-                      onValueChange={(value) => setSignUpData({ ...signUpData, role: value as any })}
+                      onValueChange={(value) => setSignUpData({ ...signUpData, role: value as 'manager' | 'mentor' | 'buddy' })}
                     >
                       <SelectTrigger>
                         <SelectValue placeholder="Select your role" />
@@ -197,7 +197,7 @@ export default function AuthPage() {
                     <Label htmlFor="signup-domain">Domain Expertise</Label>
                     <Select 
                       value={signUpData.domainRole} 
-                      onValueChange={(value) => setSignUpData({ ...signUpData, domainRole: value as any })}
+                      onValueChange={(value) => setSignUpData({ ...signUpData, domainRole: value as 'frontend' | 'backend' | 'fullstack' | 'devops' | 'qa' | 'hr' })}
                     >
                       <SelectTrigger>
                         <SelectValue placeholder="Select your domain" />

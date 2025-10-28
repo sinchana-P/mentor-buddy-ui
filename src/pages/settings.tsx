@@ -7,7 +7,14 @@ import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { useTheme } from '@/contexts/ThemeContext';
-import { apiRequest } from '@/lib/queryClient';
+import { 
+  useUpdateProfileMutation,
+  useUpdatePreferencesMutation,
+  useUpdatePrivacySettingsMutation,
+  useChangePasswordMutation,
+  useDeleteAccountMutation,
+  useExportUserDataQuery
+} from '@/api/apiSlice';
 import { 
   Settings as SettingsIcon, 
   User, 
@@ -32,26 +39,34 @@ import {
 } from 'lucide-react';
 
 export default function Settings() {
-  const { user, updateUserRole } = useAuth();
+  const { user } = useAuth();
   const { toast } = useToast();
   const { theme, setTheme, themes } = useTheme();
-  const [isLoading, setIsLoading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // API mutations
+  const [updateProfile, { isLoading: isUpdatingProfile }] = useUpdateProfileMutation();
+  const [updatePreferences, { isLoading: isUpdatingPreferences }] = useUpdatePreferencesMutation();
+  const [, { isLoading: isUpdatingPrivacy }] = useUpdatePrivacySettingsMutation();
+  const [changePassword, { isLoading: isChangingPassword }] = useChangePasswordMutation();
+  const [deleteAccount, { isLoading: isDeletingAccount }] = useDeleteAccountMutation();
+  
+  const isLoading = isUpdatingProfile || isUpdatingPreferences || isUpdatingPrivacy || isChangingPassword || isDeletingAccount;
   const [showPasswords, setShowPasswords] = useState({
     current: false,
     new: false,
     confirm: false
   });
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [profileData, setProfileData] = useState({
     name: user?.name || '',
     email: user?.email || '',
     domainRole: user?.domainRole || '',
-    bio: (user as any)?.bio || '',
-    avatarUrl: (user as any)?.avatarUrl || '',
+    bio: (user as unknown as { bio?: string })?.bio || '',
+    avatarUrl: (user as unknown as { avatarUrl?: string })?.avatarUrl || '',
     timezone: 'UTC',
     language: 'en',
-    phoneNumber: (user as any)?.phoneNumber || ''
+    phoneNumber: (user as unknown as { phoneNumber?: string })?.phoneNumber || ''
   });
 
   const [passwordData, setPasswordData] = useState({
@@ -119,7 +134,7 @@ export default function Settings() {
         title: "Avatar Updated",
         description: "Your profile photo has been updated successfully.",
       });
-    } catch (error) {
+    } catch {
       toast({
         title: "Error",
         description: "Failed to update avatar. Please try again.",
@@ -131,30 +146,35 @@ export default function Settings() {
   };
 
   const handleProfileUpdate = async () => {
-    setIsLoading(true);
     try {
-      // Update user profile
-      // updateUserRole expects a specific type, so cast or validate
-      await updateUserRole(profileData.domainRole as any);
-      
-      // TODO: Implement API call to update profile data
-      // await apiRequest(`/api/users/${user?.id}`, {
-      //   method: 'PATCH',
-      //   body: profileData
-      // });
+      // Prepare update data (exclude unchanged fields)
+      const updateData: Record<string, unknown> = {};
+      if (profileData.name !== user?.name) updateData.name = profileData.name;
+      if (profileData.bio !== (user as unknown as { bio?: string })?.bio) updateData.bio = profileData.bio;
+      if (profileData.phoneNumber !== (user as unknown as { phoneNumber?: string })?.phoneNumber) updateData.phoneNumber = profileData.phoneNumber;
+      if (profileData.timezone !== (user as unknown as { timezone?: string })?.timezone) updateData.timezone = profileData.timezone;
+      if (profileData.avatarUrl !== (user as unknown as { avatarUrl?: string })?.avatarUrl) updateData.avatarUrl = profileData.avatarUrl;
+
+      if (Object.keys(updateData).length === 0) {
+        toast({
+          title: "No Changes",
+          description: "No changes were made to your profile.",
+        });
+        return;
+      }
+
+      await updateProfile(updateData).unwrap();
       
       toast({
         title: "Profile Updated",
         description: "Your profile has been updated successfully.",
       });
-    } catch (error) {
+    } catch (error: unknown) {
       toast({
         title: "Error",
-        description: "Failed to update profile. Please try again.",
+        description: (error as { data?: { message?: string } })?.data?.message || "Failed to update profile. Please try again.",
         variant: "destructive",
       });
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -186,77 +206,69 @@ export default function Settings() {
       return;
     }
 
-    setIsLoading(true);
     try {
-      // TODO: Implement password change API
-      await apiRequest('PATCH', '/api/auth/change-password', {
-        currentPassword: passwordData.currentPassword,
-        newPassword: passwordData.newPassword
-      });
+      await changePassword(passwordData).unwrap();
       
       setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
       toast({
         title: "Password Changed",
         description: "Your password has been changed successfully.",
       });
-    } catch (error) {
+    } catch (error: unknown) {
       toast({
         title: "Error",
-        description: "Failed to change password. Please check your current password and try again.",
+        description: (error as { data?: { message?: string } })?.data?.message || "Failed to change password. Please check your current password and try again.",
         variant: "destructive",
       });
-    } finally {
-      setIsLoading(false);
     }
   };
 
   const handlePreferencesUpdate = async () => {
-    setIsLoading(true);
     try {
-      // TODO: Implement preferences update API
-      await apiRequest('PATCH', '/api/user/preferences', preferences);
+      await updatePreferences(preferences).unwrap();
       toast({
         title: "Preferences Updated",
         description: "Your preferences have been updated successfully.",
       });
-    } catch (error) {
+    } catch (error: unknown) {
       toast({
         title: "Error",
-        description: "Failed to update preferences. Please try again.",
+        description: (error as { data?: { message?: string } })?.data?.message || "Failed to update preferences. Please try again.",
         variant: "destructive",
       });
-    } finally {
-      setIsLoading(false);
     }
   };
 
+  // Get the export query hook
+  const { refetch: triggerExport } = useExportUserDataQuery(undefined, { skip: true });
+
   const handleExportData = async () => {
-    setIsLoading(true);
     try {
-      // TODO: Implement data export API
-      const data = await apiRequest('GET', '/api/user/export');
-      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `mentor-buddy-data-${new Date().toISOString().split('T')[0]}.json`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+      // Trigger the query manually
+      const { data } = await triggerExport();
       
-      toast({
-        title: "Data Exported",
-        description: "Your data has been exported successfully.",
-      });
-    } catch (error) {
+      if (data) {
+        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `mentor-buddy-data-${new Date().toISOString().split('T')[0]}.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        
+        toast({
+          title: "Data Exported",
+          description: "Your data has been exported successfully.",
+        });
+      }
+    } catch (error: unknown) {
       toast({
         title: "Error",
-        description: "Failed to export data. Please try again.",
+        description: (error as { data?: { message?: string } })?.data?.message || "Failed to export data. Please try again.",
         variant: "destructive",
       });
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -264,22 +276,21 @@ export default function Settings() {
     const confirmed = window.confirm('Are you sure you want to delete your account? This action cannot be undone.');
     if (!confirmed) return;
 
-    setIsLoading(true);
     try {
-      // TODO: Implement account deletion API
-      await apiRequest('DELETE', '/api/user/account');
+      await deleteAccount().unwrap();
       toast({
         title: "Account Deleted",
         description: "Your account has been scheduled for deletion.",
       });
-    } catch (error) {
+      
+      // Optionally redirect to login page
+      // setLocation('/auth');
+    } catch (error: unknown) {
       toast({
         title: "Error",
-        description: "Failed to delete account. Please try again.",
+        description: (error as { data?: { message?: string } })?.data?.message || "Failed to delete account. Please try again.",
         variant: "destructive",
       });
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -905,13 +916,13 @@ export default function Settings() {
                 <div className="space-y-2">
                   <label className="form-label">Member Since</label>
                   <p className="text-sm font-mono bg-muted px-3 py-2 rounded-lg text-foreground">
-                    {(user as any)?.createdAt ? new Date((user as any).createdAt).toLocaleDateString() : 'N/A'}
+                    {(user as unknown as { createdAt?: string })?.createdAt ? new Date((user as unknown as { createdAt?: string }).createdAt).toLocaleDateString() : 'N/A'}
                   </p>
                 </div>
                 <div className="space-y-2">
                   <label className="form-label">Last Login</label>
                   <p className="text-sm bg-muted px-3 py-2 rounded-lg text-foreground">
-                    {(user as any)?.lastLoginAt ? new Date((user as any).lastLoginAt).toLocaleDateString() : 'N/A'}
+                    {(user as unknown as { lastLoginAt?: string })?.lastLoginAt ? new Date((user as unknown as { lastLoginAt?: string }).lastLoginAt).toLocaleDateString() : 'N/A'}
                   </p>
                 </div>
               </div>

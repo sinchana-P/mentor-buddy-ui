@@ -1,9 +1,9 @@
-import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { useGetDashboardActivityQuery } from '@/api/apiSlice';
 import { 
   Users, 
   GraduationCap, 
@@ -12,28 +12,10 @@ import {
   BookOpen, 
   TrendingUp,
   Clock,
-  MoreHorizontal
+  MoreHorizontal,
+  Loader2
 } from 'lucide-react';
 
-interface Activity {
-  id: string;
-  type: 'task_completed' | 'buddy_assigned' | 'message_sent' | 'progress_updated' | 'resource_added' | 'mentor_joined';
-  title: string;
-  description: string;
-  timestamp: string;
-  user?: {
-    name: string;
-    avatarUrl?: string;
-    role: string;
-  };
-  metadata?: {
-    taskTitle?: string;
-    buddyName?: string;
-    mentorName?: string;
-    progress?: number;
-    resourceTitle?: string;
-  };
-}
 
 interface RecentActivitiesProps {
   maxItems?: number;
@@ -41,90 +23,11 @@ interface RecentActivitiesProps {
 }
 
 export default function RecentActivities({ maxItems = 5, showViewAll = true }: RecentActivitiesProps) {
-  const [activities] = useState<Activity[]>([
-    {
-      id: '1',
-      type: 'task_completed',
-      title: 'Task Completed',
-      description: 'React Fundamentals course completed',
-      timestamp: '2 hours ago',
-      user: {
-        name: 'Sarah Johnson',
-        role: 'buddy'
-      },
-      metadata: {
-        taskTitle: 'React Fundamentals',
-        progress: 100
-      }
-    },
-    {
-      id: '2',
-      type: 'buddy_assigned',
-      title: 'New Buddy Assigned',
-      description: 'Assigned to mentor John Smith',
-      timestamp: '4 hours ago',
-      user: {
-        name: 'Mike Chen',
-        role: 'buddy'
-      },
-      metadata: {
-        mentorName: 'John Smith'
-      }
-    },
-    {
-      id: '3',
-      type: 'message_sent',
-      title: 'Message Sent',
-      description: 'Sent feedback on TypeScript project',
-      timestamp: '6 hours ago',
-      user: {
-        name: 'Emily Davis',
-        role: 'mentor'
-      },
-      metadata: {
-        buddyName: 'Alex Wilson'
-      }
-    },
-    {
-      id: '4',
-      type: 'progress_updated',
-      title: 'Progress Updated',
-      description: 'Advanced to intermediate level',
-      timestamp: '1 day ago',
-      user: {
-        name: 'David Brown',
-        role: 'buddy'
-      },
-      metadata: {
-        progress: 75
-      }
-    },
-    {
-      id: '5',
-      type: 'resource_added',
-      title: 'Resource Added',
-      description: 'Added Docker tutorial to resources',
-      timestamp: '2 days ago',
-      user: {
-        name: 'Lisa Wang',
-        role: 'mentor'
-      },
-      metadata: {
-        resourceTitle: 'Docker for Beginners'
-      }
-    },
-    {
-      id: '6',
-      type: 'mentor_joined',
-      title: 'New Mentor Joined',
-      description: 'Welcome to the platform',
-      timestamp: '3 days ago',
-      user: {
-        name: 'Robert Taylor',
-        role: 'mentor'
-      }
-    }
-  ]);
+  const { data: activities = [], isLoading, error } = useGetDashboardActivityQuery(undefined, {
+    pollingInterval: 30000, 
+    refetchOnFocus: true,
+    refetchOnReconnect: true,
+  });
 
   const getActivityIcon = (type: string) => {
     switch (type) {
@@ -166,6 +69,25 @@ export default function RecentActivities({ maxItems = 5, showViewAll = true }: R
 
   const displayActivities = activities.slice(0, maxItems);
 
+  const formatTimestamp = (timestamp: string) => {
+    try {
+      const date = new Date(timestamp);
+      const now = new Date();
+      const diff = now.getTime() - date.getTime();
+      const minutes = Math.floor(diff / 60000);
+      const hours = Math.floor(diff / 3600000);
+      const days = Math.floor(diff / 86400000);
+
+      if (minutes < 1) return 'Just now';
+      if (minutes < 60) return `${minutes} minutes ago`;
+      if (hours < 24) return `${hours} hours ago`;
+      if (days < 7) return `${days} days ago`;
+      return date.toLocaleDateString();
+    } catch {
+      return timestamp;
+    }
+  };
+
   return (
     <Card>
       <CardHeader>
@@ -182,8 +104,28 @@ export default function RecentActivities({ maxItems = 5, showViewAll = true }: R
         </div>
       </CardHeader>
       <CardContent>
-        <div className="space-y-4">
-          {displayActivities.map((activity, index) => (
+        {isLoading && (
+          <div className="flex items-center justify-center py-8">
+            <Loader2 className="h-6 w-6 animate-spin" />
+            <span className="ml-2 text-sm text-muted-foreground">Loading activities...</span>
+          </div>
+        )}
+        
+        {error && (
+          <div className="text-center py-8">
+            <p className="text-sm text-destructive">Failed to load activities</p>
+          </div>
+        )}
+        
+        {!isLoading && !error && activities.length === 0 && (
+          <div className="text-center py-8">
+            <p className="text-sm text-muted-foreground">No recent activities</p>
+          </div>
+        )}
+        
+        {!isLoading && !error && activities.length > 0 && (
+          <div className="space-y-4">
+            {displayActivities.map((activity, index) => (
             <motion.div
               key={activity.id}
               initial={{ opacity: 0, x: -20 }}
@@ -199,60 +141,38 @@ export default function RecentActivities({ maxItems = 5, showViewAll = true }: R
               
               <div className="flex-1 min-w-0">
                 <div className="flex items-center space-x-2 mb-1">
-                  <p className="text-sm font-medium">{activity.title}</p>
+                  <p className="text-sm font-medium">{activity.type?.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase()) || 'Activity'}</p>
                   <Badge variant="outline" className="text-xs">
-                    {activity.user?.role}
+                    {activity.status || 'Active'}
                   </Badge>
                 </div>
                 
                 <p className="text-sm text-muted-foreground mb-2">
-                  {activity.description}
+                  {activity.message || activity.description}
                 </p>
                 
-                {activity.metadata && (
-                  <div className="text-xs text-muted-foreground space-y-1">
-                    {activity.metadata.taskTitle && (
-                      <p>Task: {activity.metadata.taskTitle}</p>
-                    )}
-                    {activity.metadata.buddyName && (
-                      <p>Buddy: {activity.metadata.buddyName}</p>
-                    )}
-                    {activity.metadata.mentorName && (
-                      <p>Mentor: {activity.metadata.mentorName}</p>
-                    )}
-                    {activity.metadata.progress && (
-                      <p>Progress: {activity.metadata.progress}%</p>
-                    )}
-                    {activity.metadata.resourceTitle && (
-                      <p>Resource: {activity.metadata.resourceTitle}</p>
-                    )}
-                  </div>
-                )}
-                
                 <p className="text-xs text-muted-foreground mt-2">
-                  {activity.timestamp}
+                  {formatTimestamp(activity.timestamp)}
                 </p>
               </div>
               
-              {activity.user && (
-                <div className="flex-shrink-0">
-                  <Avatar className="w-8 h-8">
-                    <AvatarImage src={activity.user.avatarUrl} alt={activity.user.name} />
-                    <AvatarFallback className="text-xs">
-                      {activity.user.name.split(' ').map(n => n[0]).join('')}
-                    </AvatarFallback>
-                  </Avatar>
-                </div>
-              )}
+              <div className="flex-shrink-0">
+                <Avatar className="w-8 h-8">
+                  <AvatarImage src={activity.user?.avatarUrl} alt={activity.user?.name} />
+                  <AvatarFallback className="text-xs">
+                    {activity.user?.name ? activity.user.name.split(' ').map(n => n[0]).join('') : 'U'}
+                  </AvatarFallback>
+                </Avatar>
+              </div>
             </motion.div>
           ))}
-        </div>
-        
-        {showViewAll && activities.length > maxItems && (
-          <div className="mt-4 pt-4 border-t">
-            <Button variant="outline" className="w-full">
-              View All Activities
-            </Button>
+          {showViewAll && activities.length > maxItems && (
+            <div className="mt-4 pt-4 border-t">
+              <Button variant="outline" className="w-full">
+                View All Activities
+              </Button>
+            </div>
+          )}
           </div>
         )}
       </CardContent>

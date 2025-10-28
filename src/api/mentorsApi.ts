@@ -1,78 +1,94 @@
-import { apiSlice } from './apiSlice';
-import type { Mentor, Buddy } from '../types';
+// Mentors API following your reference pattern
+import { api } from './api';
+import type {
+  MentorRO,
+  CreateMentorDTO,
+  UpdateMentorDTO,
+  MentorsQueryDTO,
+  BuddyRO,
+} from './dto';
 
-export const mentorsApi = apiSlice.injectEndpoints({
-  endpoints: (builder) => ({
-    getMentors: builder.query<Mentor[], { domain?: string; search?: string }>({
-      query: (params) => {
-        const queryParams = new URLSearchParams();
-        if (params.domain) queryParams.append('domain', params.domain);
-        if (params.search) queryParams.append('search', params.search);
+// Mentors API endpoints
+export const mentorsApi = api.injectEndpoints({
+  endpoints: (build) => ({
+    getMentors: build.query<MentorRO[], MentorsQueryDTO>({
+      query: (params = {}) => {
+        const queryString = new URLSearchParams();
+        if (params.domain) queryString.append('domain', params.domain);
+        if (params.search) queryString.append('search', params.search);
+        if (params.status) queryString.append('status', params.status);
+        if (params.page) queryString.append('page', params.page.toString());
+        if (params.limit) queryString.append('limit', params.limit.toString());
         
         return {
           url: '/api/mentors',
-          params: queryParams,
+          params: queryString,
         };
       },
-      providesTags: ['Mentors'],
+      providesTags: (result) =>
+        result
+          ? [...result.map(({ id }) => ({ type: 'Mentors' as const, id })), 'Mentors']
+          : ['Mentors'],
     }),
     
-    getMentorById: builder.query<Mentor, string>({
+    getMentorById: build.query<MentorRO, string>({
       query: (id) => `/api/mentors/${id}`,
-      providesTags: (result, error, id) => [{ type: 'Mentor', id }],
+      providesTags: (result, error, id) => [{ type: 'Mentors', id }],
     }),
     
-    getMentorBuddies: builder.query<Buddy[], { mentorId: string; status?: string }>({
+    getMentorBuddies: build.query<BuddyRO[], { mentorId: string; status?: string }>({
       query: ({ mentorId, status }) => {
-        const queryParams = new URLSearchParams();
-        if (status) queryParams.append('status', status);
+        const queryString = new URLSearchParams();
+        if (status) queryString.append('status', status);
         
         return {
           url: `/api/mentors/${mentorId}/buddies`,
-          params: queryParams,
+          params: queryString,
         };
       },
       providesTags: (result, error, { mentorId }) => [
-        { type: 'Mentor', id: mentorId },
+        { type: 'Mentors', id: mentorId },
         'Buddies',
       ],
     }),
     
-    createMentor: builder.mutation<Mentor, Partial<Mentor>>({
+    createMentor: build.mutation<MentorRO, CreateMentorDTO>({
       query: (mentorData) => ({
         url: '/api/mentors',
         method: 'POST',
         body: mentorData,
       }),
-      invalidatesTags: ['Mentors'],
+      invalidatesTags: ['Mentors', 'DashboardStats', 'DashboardActivity', 'Users'],
     }),
     
-    updateMentor: builder.mutation<Mentor, { id: string; mentorData: Partial<Mentor> }>({
+    updateMentor: build.mutation<MentorRO, { id: string; mentorData: UpdateMentorDTO }>({
       query: ({ id, mentorData }) => ({
         url: `/api/mentors/${id}`,
         method: 'PATCH',
         body: mentorData,
       }),
       invalidatesTags: (_, __, { id }) => [
-        { type: 'Mentor', id },
+        { type: 'Mentors', id },
         'Mentors',
         'DashboardStats',
         'DashboardActivity',
-        'Users'
+        'Users',
+        'Buddies',
       ],
     }),
     
-    deleteMentor: builder.mutation<void, string>({
+    deleteMentor: build.mutation<void, string>({
       query: (id) => ({
         url: `/api/mentors/${id}`,
         method: 'DELETE',
       }),
-      invalidatesTags: [
-        'Mentors', 
-        'DashboardStats', 
-        'DashboardActivity', 
-        'Users', 
-        'Buddies'
+      invalidatesTags: (_, __, id) => [
+        { type: 'Mentors', id },
+        'Mentors',
+        'DashboardStats',
+        'DashboardActivity',
+        'Users',
+        'Buddies',
       ],
     }),
   }),
@@ -80,8 +96,11 @@ export const mentorsApi = apiSlice.injectEndpoints({
 
 export const {
   useGetMentorsQuery,
+  useLazyGetMentorsQuery,
   useGetMentorByIdQuery,
+  useLazyGetMentorByIdQuery,
   useGetMentorBuddiesQuery,
+  useLazyGetMentorBuddiesQuery,
   useCreateMentorMutation,
   useUpdateMentorMutation,
   useDeleteMentorMutation,

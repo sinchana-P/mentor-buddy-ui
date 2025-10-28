@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { useMentors, useBuddies } from '@/hooks/useApi';
+import { useGetMentorsQuery, useGetMentorBuddiesQuery } from '@/api/apiSlice';
 import { useRoute } from 'wouter';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -25,12 +25,15 @@ export default function MentorProfilePage() {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isMessageModalOpen, setIsMessageModalOpen] = useState(false);
 
-  const { data: mentors = [], isLoading: mentorLoading } = useMentors();
-  const mentor = mentors.find((m: any) => m.id === mentorId) || null;
+  const { data: mentors = [], isLoading: mentorLoading } = useGetMentorsQuery();
+  const mentor = mentors.find((m: unknown) => (m as { id: string }).id === mentorId) || null;
   
-  const { data: buddies = [], isLoading: buddiesLoading } = useBuddies();
-  const assignedBuddies = buddies.filter((b: any) => 
-    b.mentorId === mentorId && (statusFilter === 'all' || b.status === statusFilter)
+  const { data: assignedBuddies = [], isLoading: buddiesLoading } = useGetMentorBuddiesQuery(
+    { 
+      mentorId: mentorId || '',
+      status: statusFilter === 'all' ? undefined : statusFilter
+    },
+    { skip: !mentorId }
   );
 
   if (mentorLoading) {
@@ -157,19 +160,24 @@ export default function MentorProfilePage() {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {assignedBuddies?.map((buddy: any, index: number) => (
-              <motion.div
-                key={buddy.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.3, delay: index * 0.1 }}
-              >
-                <BuddyCard buddy={buddy} showMentor={false} />
-              </motion.div>
-            )) || (
+            {assignedBuddies.length > 0 ? (
+              assignedBuddies.map((buddy: unknown, index: number) => (
+                <motion.div
+                  key={buddy.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3, delay: index * 0.1 }}
+                >
+                  <BuddyCard buddy={buddy} showMentor={false} />
+                </motion.div>
+              ))
+            ) : (
               <div className="col-span-full text-center py-12">
                 <div className="text-muted-foreground">
                   <p>No buddies assigned to this mentor</p>
+                  {statusFilter !== 'all' && (
+                    <p className="text-sm mt-2">Try changing the status filter above</p>
+                  )}
                 </div>
               </div>
             )}

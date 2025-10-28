@@ -11,7 +11,6 @@ import {
   GraduationCap, 
   CheckSquare, 
   BarChart3, 
-  Users, 
   X,
   LogOut,
   BookOpen,

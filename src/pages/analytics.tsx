@@ -5,22 +5,25 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
-import { Calendar, TrendingUp, Users, Target, Clock, CheckCircle, AlertCircle } from 'lucide-react';
+import { Calendar, TrendingUp, Users, Target, CheckCircle, AlertCircle } from 'lucide-react';
 
-interface WeekStats {
+interface WeeklyTask {
   week: string;
   tasks: number;
   completed: number;
 }
-interface MonthStats {
+
+interface MonthlyProgress {
   month: string;
   progress: number;
 }
-interface MentorStats {
+
+interface MentorPerformance {
   name: string;
   rating: number;
   tasks: number;
 }
+
 interface Insight {
   type: 'success' | 'warning';
   title: string;
@@ -28,10 +31,27 @@ interface Insight {
   icon: React.ElementType;
 }
 
+interface AnalyticsData {
+  overview: {
+    totalMentors: number;
+    totalBuddies: number;
+    activeTasks: number;
+    completedTasks: number;
+    completionRate: number;
+    averageRating: number;
+  };
+  trends: {
+    weeklyTasks: WeeklyTask[];
+    monthlyProgress: MonthlyProgress[];
+    mentorPerformance: MentorPerformance[];
+  };
+  insights: Insight[];
+}
+
 export default function Analytics() {
   const [timeRange, setTimeRange] = useState('30d');
   const [isLoading, setIsLoading] = useState(true);
-  const [analyticsData, setAnalyticsData] = useState({
+  const [analyticsData, setAnalyticsData] = useState<AnalyticsData>({
     overview: {
       totalMentors: 0,
       totalBuddies: 0,
@@ -65,18 +85,18 @@ export default function Analytics() {
           { week: 'Week 2', tasks: 18, completed: 16 },
           { week: 'Week 3', tasks: 22, completed: 19 },
           { week: 'Week 4', tasks: 20, completed: 18 }
-        ] as any,
+        ],
         monthlyProgress: [
           { month: 'Jan', progress: 65 },
           { month: 'Feb', progress: 72 },
           { month: 'Mar', progress: 78 },
           { month: 'Apr', progress: 85 }
-        ] as any,
+        ],
         mentorPerformance: [
           { name: 'John Doe', rating: 4.5, tasks: 25 },
           { name: 'Jane Smith', rating: 4.8, tasks: 30 },
           { name: 'Mike Johnson', rating: 4.2, tasks: 18 }
-        ] as any,
+        ],
       },
       insights: [
         {
@@ -91,7 +111,7 @@ export default function Analytics() {
           description: 'Some mentors have high task loads, consider redistribution',
           icon: AlertCircle
         }
-      ] as any,
+      ],
     });
     setIsLoading(false);
   }, [timeRange]);
@@ -183,7 +203,7 @@ export default function Analytics() {
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Mentors</CardTitle>
             <Badge className={getMetricColor('mentors')}>
-              {getMetricIcon('mentors')}
+              {getMetricIcon('mentors')} 
             </Badge>
           </CardHeader>
           <CardContent>
@@ -252,7 +272,7 @@ export default function Analytics() {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {analyticsData.trends.weeklyTasks.map((week: any, index: number) => (
+                {analyticsData.trends.weeklyTasks.map((week: WeeklyTask, index: number) => (
                   <div key={index} className="flex items-center justify-between">
                     <span className="text-sm font-medium">{week?.week || ''}</span>
                     <div className="flex items-center space-x-4">
@@ -284,7 +304,7 @@ export default function Analytics() {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {analyticsData.trends.monthlyProgress.map((month: any, index: number) => (
+                {analyticsData.trends.monthlyProgress.map((month: MonthlyProgress, index: number) => (
                   <div key={index} className="flex items-center justify-between">
                     <span className="text-sm font-medium">{month.month}</span>
                     <div className="flex items-center space-x-4">
@@ -314,7 +334,7 @@ export default function Analytics() {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {analyticsData.trends.mentorPerformance.map((mentor: any, index: number) => (
+              {analyticsData.trends.mentorPerformance.map((mentor: MentorPerformance, index: number) => (
                 <div key={index} className="flex items-center justify-between p-4 border rounded-lg">
                   <div className="flex items-center space-x-4">
                     <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center text-white text-sm font-bold">
@@ -350,7 +370,7 @@ export default function Analytics() {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {analyticsData.insights.map((insight: any, index: number) => (
+              {analyticsData.insights.map((insight: Insight, index: number) => (
                 <div key={index} className="flex items-start space-x-4 p-4 border rounded-lg">
                   <insight.icon className={`h-5 w-5 mt-0.5 ${
                     insight.type === 'success' ? 'text-green-500' : 'text-yellow-500'

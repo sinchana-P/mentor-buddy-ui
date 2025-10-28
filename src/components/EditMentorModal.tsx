@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -7,52 +7,62 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
-import { authenticatedFetch } from '@/lib/api-utils';
+import { useUpdateMentorMutation } from '@/api/mentorsApi';
+import type { MentorRO } from '@/api/dto';
 
 interface EditMentorModalProps {
   isOpen: boolean;
   onClose: () => void;
-  mentor: any;
+  mentor: MentorRO;
 }
 
 export default function EditMentorModal({ isOpen, onClose, mentor }: EditMentorModalProps) {
   const [formData, setFormData] = useState({
     name: mentor?.user?.name || '',
-    email: mentor?.user?.email || '',
     expertise: mentor?.expertise || '',
-    domainRole: mentor?.user?.domainRole || '',
+    experience: mentor?.experience || '',
+    domainRole: mentor?.user?.domainRole || 'frontend',
     isActive: mentor?.isActive ?? true,
   });
 
-  const [isUpdating, setIsUpdating] = useState(false);
+  // Sync form data when mentor changes or modal opens
+  useEffect(() => {
+    if (isOpen && mentor) {
+      setFormData({
+        name: mentor.user?.name || '',
+        expertise: mentor.expertise || '',
+        experience: mentor.experience || '',
+        domainRole: mentor.user?.domainRole || 'frontend',
+        isActive: mentor.isActive ?? true,
+      });
+    }
+  }, [isOpen, mentor]);
+
+  const [updateMentor, { isLoading: isUpdating }] = useUpdateMentorMutation();
   const { toast } = useToast();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsUpdating(true);
-    try {
-      const response = await authenticatedFetch(`/api/mentors/${mentor.id}`, {
-        method: 'PATCH',
-        body: JSON.stringify(formData),
-      });
 
-      if (response.ok) {
-        toast({
-          title: 'Success',
-          description: 'Mentor updated successfully!'
-        });
-        onClose();
-      } else {
-        throw new Error('Failed to update mentor');
-      }
-    } catch (error) {
+    try {
+      await updateMentor({
+        id: mentor.id,
+        mentorData: formData
+      }).unwrap();
+
+      toast({
+        title: 'Success',
+        description: 'Mentor profile updated successfully! Changes will appear immediately.'
+      });
+      onClose();
+    } catch (error: unknown) {
+      console.error('Failed to update mentor:', error);
+      const errorMessage = (error as { data?: { message?: string } })?.data?.message || 'Failed to update mentor';
       toast({
         title: 'Error',
-        description: 'Failed to update mentor. Please try again.',
+        description: errorMessage,
         variant: 'destructive'
       });
-    } finally {
-      setIsUpdating(false);
     }
   };
 
@@ -71,38 +81,13 @@ export default function EditMentorModal({ isOpen, onClose, mentor }: EditMentorM
         </DialogHeader>
         
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="name">Full Name</Label>
-              <Input
-                id="name"
-                value={formData.name}
-                onChange={(e) => handleInputChange('name', e.target.value)}
-                placeholder="Enter full name"
-                required
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                value={formData.email}
-                onChange={(e) => handleInputChange('email', e.target.value)}
-                placeholder="Enter email address"
-                required
-              />
-            </div>
-          </div>
-
           <div className="space-y-2">
-            <Label htmlFor="expertise">Expertise</Label>
+            <Label htmlFor="name">Full Name</Label>
             <Input
-              id="expertise"
-              value={formData.expertise}
-              onChange={(e) => handleInputChange('expertise', e.target.value)}
-              placeholder="e.g., React, Node.js, DevOps"
+              id="name"
+              value={formData.name}
+              onChange={(e) => handleInputChange('name', e.target.value)}
+              placeholder="Enter full name"
               required
             />
           </div>
@@ -116,7 +101,6 @@ export default function EditMentorModal({ isOpen, onClose, mentor }: EditMentorM
               <SelectContent>
                 <SelectItem value="frontend">Frontend</SelectItem>
                 <SelectItem value="backend">Backend</SelectItem>
-                <SelectItem value="fullstack">Full Stack</SelectItem>
                 <SelectItem value="devops">DevOps</SelectItem>
                 <SelectItem value="qa">QA</SelectItem>
                 <SelectItem value="hr">HR</SelectItem>
@@ -125,13 +109,26 @@ export default function EditMentorModal({ isOpen, onClose, mentor }: EditMentorM
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="bio">Bio</Label>
+            <Label htmlFor="expertise">Expertise</Label>
             <Textarea
-              id="bio"
-              value={formData.bio}
-              onChange={(e) => handleInputChange('bio', e.target.value)}
-              placeholder="Tell us about your experience and mentoring approach..."
-              rows={4}
+              id="expertise"
+              value={formData.expertise}
+              onChange={(e) => handleInputChange('expertise', e.target.value)}
+              placeholder="Describe technical expertise and skills..."
+              rows={3}
+              required
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="experience">Experience</Label>
+            <Textarea
+              id="experience"
+              value={formData.experience}
+              onChange={(e) => handleInputChange('experience', e.target.value)}
+              placeholder="Describe work experience and background..."
+              rows={3}
+              required
             />
           </div>
 

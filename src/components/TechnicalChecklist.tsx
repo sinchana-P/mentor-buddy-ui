@@ -21,7 +21,7 @@ interface TechnicalChecklistProps {
 
 export default function TechnicalChecklist({ buddyId, progress }: TechnicalChecklistProps) {
   const { toast } = useToast();
-  const [isUpdating, setIsUpdating] = useState(false);
+  const [, setIsUpdating] = useState(false);
 
   const updateProgress = async ({ topicId, checked }: { topicId: string; checked: boolean }) => {
     setIsUpdating(true);
@@ -39,7 +39,7 @@ export default function TechnicalChecklist({ buddyId, progress }: TechnicalCheck
       } else {
         throw new Error('Failed to update progress');
       }
-    } catch (error) {
+    } catch {
       toast({
         title: "Update Failed",
         description: "Failed to update progress. Please try again.",

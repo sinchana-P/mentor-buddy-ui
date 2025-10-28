@@ -2,7 +2,6 @@ import { Switch, Route } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { AuthProvider } from "@/contexts/AuthContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import Layout from "@/components/Layout";
@@ -76,7 +75,7 @@ function Router() {
         )} />
         
         <Route path="/buddies" component={() => (
-          <ProtectedRoute requiredRoles={['manager', 'mentor']}>
+          <ProtectedRoute>
             <Layout>
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
@@ -166,7 +165,7 @@ function Router() {
         )} />
 
         <Route path="/analytics" component={() => (
-          <ProtectedRoute requiredRoles={['manager', 'mentor']}>
+          <ProtectedRoute>
             <Layout>
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
@@ -236,12 +235,10 @@ function App() {
   return (
     <ThemeProvider>
       <div className="min-h-dvh bg-background">
-        <AuthProvider>
-          <TooltipProvider>
-            <Toaster />
-            <Router />
-          </TooltipProvider>
-        </AuthProvider>
+        <TooltipProvider>
+          <Toaster />
+          <Router />
+        </TooltipProvider>
       </div>
     </ThemeProvider>
   );

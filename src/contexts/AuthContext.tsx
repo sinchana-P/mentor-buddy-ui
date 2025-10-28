@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useEffect, useState } from 'react';
 import type { DomainRole } from '../types';
 
 export interface AuthUser {
@@ -43,7 +43,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUser(userData);
         console.log('Restored user session:', userData);
         // Verify token is still valid
-        verifyToken(storedToken, userData);
+        verifyToken(storedToken);
       } catch (error) {
         console.error('Error parsing stored user data:', error);
         localStorage.removeItem('auth_token');
@@ -53,7 +53,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setLoading(false);
   }, []);
 
-  const verifyToken = async (authToken: string, userData: AuthUser) => {
+  const verifyToken = async (authToken: string) => {
     try {
       const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/api/auth/me`, {
         headers: {

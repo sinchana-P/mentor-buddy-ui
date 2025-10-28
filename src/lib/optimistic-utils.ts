@@ -45,7 +45,7 @@ export function optimisticListUpdate<T extends { id: string }>(
     
     // Update the cache optimistically
     dispatch(
-      apiSlice.util.upsertQueryData(endpoint as any, undefined, updatedData)
+      apiSlice.util.upsertQueryData(endpoint as string, undefined, updatedData)
     );
   }
 }
@@ -54,7 +54,7 @@ export function optimisticListUpdate<T extends { id: string }>(
 export async function withOptimisticUpdate<T>(
   mutationPromise: Promise<T>,
   optimisticUpdate?: () => void,
-  onError?: (error: any) => void
+  onError?: (error: unknown) => void
 ): Promise<T> {
   try {
     // Apply optimistic update immediately

@@ -1,0 +1,400 @@
+import { useState } from 'react';
+import { useParams } from 'wouter';
+import { useGetBuddiesQuery, useGetTasksQuery } from '@/api';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Progress } from '@/components/ui/progress';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Input } from '@/components/ui/input';
+import { ArrowLeft, Calendar, CheckCircle, Clock, GitBranch, Globe } from 'lucide-react';
+import { Link } from 'wouter';
+import { useToast } from '@/hooks/use-toast';
+import type { BuddyRO, TaskRO } from '@/api/dto';
+import { authenticatedFetch } from '@/lib/api-utils';
+
+export default function BuddyDetailPage() {
+  const { id } = useParams<{ id: string }>();
+  const [activeTab, setActiveTab] = useState('tasks');
+  const { toast } = useToast();
+
+  const { data: buddies = [], isLoading } = useGetBuddiesQuery({});
+  const buddy = buddies.find((b: BuddyRO) => b.id === id);
+
+  const { data: allTasks = [] } = useGetTasksQuery({ buddyId: id });
+  const buddyTasks = Array.isArray(allTasks) ? allTasks.filter((task: TaskRO) => task.buddyId === id) : [];
+
+  // Mock data for demonstration - in real app this would come from API
+  const mockTasks: TaskRO[] = [
+    {
+      id: '1',
+      title: 'React Fundamentals',
+      description: 'Learn React basics including components, props, and state management',
+      buddyId: id || '',
+      mentorId: buddy?.mentorId || '',
+      status: 'in_progress',
+      priority: 'medium',
+      dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    },
+    {
+      id: '2',
+      title: 'TypeScript Basics',
+      description: 'Introduction to TypeScript types, interfaces, and generics',
+      buddyId: id || '',
+      mentorId: buddy?.mentorId || '',
+      status: 'pending',
+      priority: 'medium',
+      dueDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    },
+    {
+      id: '3',
+      title: 'State Management with Redux',
+      description: 'Learn Redux for global state management in React applications',
+      buddyId: id || '',
+      mentorId: buddy?.mentorId || '',
+      status: 'completed',
+      priority: 'high',
+      dueDate: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
+      createdAt: new Date(Date.now() - 21 * 24 * 60 * 60 * 1000).toISOString(),
+      updatedAt: new Date().toISOString(),
+      completedAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString()
+    }
+  ];
+
+  const displayTasks = (buddyTasks as TaskRO[]).length > 0 ? buddyTasks as TaskRO[] : mockTasks;
+
+  // For now, use mock data for progress and portfolio
+  // TODO: Implement proper API calls for progress and portfolio data
+  const progress = null;
+  const portfolio: Array<{id: string; title: string; description: string; technologies: string[]; githubLink?: string; deployedUrl?: string; completedAt?: string}> = [];
+
+  // Mock progress data
+  const mockProgress = {
+    percentage: 65,
+    topics: [
+      { id: '2953f982-d44b-4533-abf8-d72bd3f9b7fb', name: 'React Fundamentals', checked: true },
+      { id: 'f7461ad4-b68d-4125-8313-c9859e71751c', name: 'React Components', checked: true },
+      { id: '80f79700-54ae-4c98-b524-67eefb840e4e', name: 'State Management', checked: true },
+      { id: '7e60dcdf-0e0f-44c0-bb01-7120e9574b82', name: 'TypeScript Basics', checked: false },
+      { id: '4ff71938-e6ba-48fa-b76d-0195a8f0c2fc', name: 'JavaScript ES6+', checked: false },
+      { id: '6ca63b39-5acc-4a44-9418-8c8745899a2b', name: 'CSS Styling', checked: false }
+    ]
+  };
+
+  // Mock portfolio data
+  const mockPortfolio = [
+    {
+      id: '1',
+      title: 'React Todo App',
+      description: 'A simple todo application built with React and TypeScript',
+      completedAt: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString(),
+      technologies: ['React', 'TypeScript', 'CSS'],
+      githubLink: 'https://github.com/example/react-todo',
+      deployedUrl: 'https://react-todo-demo.vercel.app'
+    },
+    {
+      id: '2',
+      title: 'Redux Counter App',
+      description: 'Counter application demonstrating Redux state management',
+      completedAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
+      technologies: ['React', 'Redux', 'TypeScript'],
+      githubLink: 'https://github.com/example/redux-counter',
+      deployedUrl: 'https://redux-counter-demo.vercel.app'
+    }
+  ];
+
+  const displayProgress = progress || mockProgress;
+  const displayPortfolio = portfolio.length > 0 ? portfolio : mockPortfolio;
+
+  const [, setIsUpdatingProgress] = useState(false);
+
+  const updateProgress = async (data: { topicId: string; checked: boolean }) => {
+    setIsUpdatingProgress(true);
+    try {
+      const response = await authenticatedFetch(`/api/buddies/${id}/progress/${data.topicId}`, {
+        method: 'PATCH',
+        body: JSON.stringify(data),
+      });
+
+      if (response.ok) {
+        toast({
+          title: 'Success',
+          description: 'Progress updated successfully!'
+        });
+      } else {
+        throw new Error('Failed to update progress');
+      }
+    } catch {
+      toast({
+        title: 'Error',
+        description: 'Failed to update progress. Please try again.',
+        variant: 'destructive'
+      });
+    } finally {
+      setIsUpdatingProgress(false);
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background">
+        <div className="p-6">
+          <div className="animate-pulse space-y-6">
+            <div className="h-8 bg-gray-200 dark:bg-gray-800 rounded w-1/3"></div>
+            <div className="h-64 bg-gray-200 dark:bg-gray-800 rounded-lg"></div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!buddy) {
+    return (
+      <div className="min-h-screen bg-background">
+        <div className="p-6 text-center">
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Buddy not found</h1>
+          <Link href="/buddies">
+            <Button className="mt-4">Back to Buddies</Button>
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  const handleProgressUpdate = (topicId: string, checked: boolean) => {
+    updateProgress({ topicId, checked });
+  };
+
+  return (
+    <div className="min-h-screen bg-background">
+      <div className="p-6">
+        <div className="mb-6">
+          <Link href="/buddies">
+            <Button variant="ghost" className="mb-4">
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back to Buddies
+            </Button>
+          </Link>
+          
+          <div className="flex items-center gap-6">
+            <Avatar className="h-20 w-20">
+              <AvatarImage src={buddy.user?.avatarUrl} />
+              <AvatarFallback className="bg-indigo-100 text-indigo-600 dark:bg-indigo-900 dark:text-indigo-200 text-2xl">
+                {buddy.user?.name?.split(' ').map(n => n[0]).join('') || 'B'}
+              </AvatarFallback>
+            </Avatar>
+            
+            <div className="flex-1">
+              <h1 className="text-3xl font-bold text-gray-900 dark:text-white">{buddy.user?.name}</h1>
+              <p className="text-gray-600 dark:text-gray-400">{buddy.user?.email}</p>
+              <div className="flex items-center gap-2 mt-2">
+                <Badge className={`${buddy.status === 'active' ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' : 
+                  buddy.status === 'inactive' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200' :
+                  'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'}`}>
+                  {buddy.status}
+                </Badge>
+                <Badge variant="outline">{buddy.domainRole}</Badge>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+          <TabsList className="grid w-full grid-cols-4">
+            <TabsTrigger value="tasks">Tasks</TabsTrigger>
+            <TabsTrigger value="progress">Progress</TabsTrigger>
+            <TabsTrigger value="portfolio">Portfolio</TabsTrigger>
+            <TabsTrigger value="details">Details</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="tasks" className="space-y-4">
+            <div className="grid gap-4">
+              {displayTasks.map((task: TaskRO) => (
+                <Card key={task.id} className="hover:shadow-md transition-shadow">
+                  <CardHeader>
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="text-lg">{task.title}</CardTitle>
+                      <Badge variant={task.status === 'completed' ? 'default' : 'secondary'}>
+                        {task.status || 'pending'}
+                      </Badge>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-gray-600 dark:text-gray-400 mb-4">{task.description}</p>
+                    
+                    {task.dueDate && (
+                      <div className="flex items-center gap-2 text-sm text-gray-500 mb-4">
+                        <Calendar className="h-4 w-4" />
+                        Due: {new Date(task.dueDate).toLocaleDateString()}
+                      </div>
+                    )}
+
+                    {task.submissionCount > 0 && (
+                      <div className="space-y-2">
+                        <h4 className="font-medium">Submissions:</h4>
+                        <div key="submissions">
+                          <p className="text-sm text-muted-foreground">Submissions: {task.submissionCount}</p>
+                        </div>
+                        {/* TODO: Replace with actual submissions when API is ready */}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              ))}
+
+              {displayTasks.length === 0 && (
+                <div className="text-center py-8">
+                  <Clock className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                  <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">No tasks yet</h3>
+                  <p className="text-gray-600 dark:text-gray-400">Tasks will appear here when assigned by a mentor</p>
+                </div>
+              )}
+            </div>
+          </TabsContent>
+
+          <TabsContent value="progress" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Technical Progress</CardTitle>
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  Track learning milestones and skill development
+                </p>
+              </CardHeader>
+              <CardContent>
+                {displayProgress && (
+                  <div className="space-y-6">
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-sm font-medium">Overall Progress</span>
+                        <span className="text-sm text-gray-600 dark:text-gray-400">
+                          {displayProgress.percentage}%
+                        </span>
+                      </div>
+                      <Progress value={displayProgress.percentage} className="h-2" />
+                    </div>
+
+                    <div className="space-y-3">
+                      {displayProgress.topics?.map((topic: { id: string; name: string; checked: boolean }) => (
+                        <div key={topic.id} className="flex items-center space-x-3">
+                          <Checkbox
+                            checked={topic.checked}
+                            onCheckedChange={(checked) => handleProgressUpdate(topic.id, checked as boolean)}
+                            disabled={false}
+                          />
+                          <span className={`flex-1 ${topic.checked ? 'line-through text-gray-500' : ''}`}>
+                            {topic.name}
+                          </span>
+                          {topic.checked && (
+                            <CheckCircle className="h-4 w-4 text-green-500" />
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="portfolio" className="space-y-4">
+            <div className="grid gap-6">
+              {(displayPortfolio as Array<{id: string; title: string; description: string; technologies: string[]; githubLink?: string; deployedUrl?: string; completedAt?: string}>).map((project) => (
+                <Card key={project.id} className="hover:shadow-md transition-shadow">
+                  <CardHeader>
+                    <CardTitle>{project.title}</CardTitle>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                      Completed on {project.completedAt ? new Date(project.completedAt).toLocaleDateString() : 'Unknown'}
+                    </p>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-gray-600 dark:text-gray-400 mb-4">{project.description}</p>
+                    
+                    <div className="flex gap-4 mb-4">
+                      {project.githubLink && (
+                        <a href={project.githubLink} target="_blank" rel="noopener noreferrer"
+                           className="flex items-center gap-2 text-blue-600 hover:underline">
+                          <GitBranch className="h-4 w-4" />
+                          Code
+                        </a>
+                      )}
+                      {project.deployedUrl && (
+                        <a href={project.deployedUrl} target="_blank" rel="noopener noreferrer"
+                           className="flex items-center gap-2 text-blue-600 hover:underline">
+                          <Globe className="h-4 w-4" />
+                          Live Demo
+                        </a>
+                      )}
+                    </div>
+
+                    {project.technologies?.length > 0 && (
+                      <div className="flex flex-wrap gap-2">
+                        {project.technologies.map((tech: string) => (
+                          <Badge key={tech} variant="outline">{tech}</Badge>
+                        ))}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              ))}
+
+              {displayPortfolio.length === 0 && (
+                <div className="text-center py-8">
+                  <GitBranch className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                  <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">No projects yet</h3>
+                  <p className="text-gray-600 dark:text-gray-400">
+                    Completed tasks will automatically be added to the portfolio
+                  </p>
+                </div>
+              )}
+            </div>
+          </TabsContent>
+
+          <TabsContent value="details" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Buddy Information</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Name</label>
+                  <Input value={buddy.user?.name || ''} readOnly />
+                </div>
+                
+                <div>
+                  <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Email</label>
+                  <Input value={buddy.user?.email || ''} readOnly />
+                </div>
+                
+                <div>
+                  <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Domain Role</label>
+                  <Input value={buddy.domainRole || ''} readOnly />
+                </div>
+                
+                <div>
+                  <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Status</label>
+                  <Input value={buddy.status || ''} readOnly />
+                </div>
+                
+                <div>
+                  <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Assigned Mentor</label>
+                  <Input value={buddy?.mentorId || 'Not assigned'} readOnly />
+                </div>
+                
+                <div>
+                  <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Start Date</label>
+                  <Input value={buddy.startDate ? new Date(buddy.startDate).toLocaleDateString() : ''} readOnly />
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
+      </div>
+    </div>
+  );
+}

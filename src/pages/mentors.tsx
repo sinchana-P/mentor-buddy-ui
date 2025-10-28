@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -10,8 +10,11 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Textarea } from '@/components/ui/textarea';
 import MentorCard from '@/components/MentorCard';
 import { Plus, Search, UserCheck, Filter, Star, Sparkles, Crown, Users } from 'lucide-react';
-import { useGetMentorsQuery, useCreateMentorMutation } from '@/api/apiSlice';
 import { useToast } from '@/hooks/use-toast';
+import { useSelector } from 'react-redux';
+import type { RootState } from '@/store';
+// RTK Query hooks following your reference pattern
+import { useGetMentorsQuery, useCreateMentorMutation } from '@/api/mentorsApi';
 
 const mentorFormSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters'),
@@ -30,6 +33,23 @@ export default function MentorsPage() {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const { toast } = useToast();
 
+  // Following your reference pattern: useSelector to read from store (commented out unused vars)
+  // const mentorsFromStore = useSelector((state: RootState) => state.mentors.mentors);
+  // const selectedMentor = useSelector((state: RootState) => state.mentors.selectedMentor);
+  // const storeFilters = useSelector((state: RootState) => state.mentors.filters);
+  // const storeLoading = useSelector((state: RootState) => state.mentors.loading);
+  const storeError = useSelector((state: RootState) => state.mentors.error);
+
+  // RTK Query hooks following your reference pattern
+  const { data: mentors = [], isLoading, error, refetch } = useGetMentorsQuery({
+    domain: filters.role !== 'all' ? filters.role : undefined,
+    search: filters.search || undefined,
+    status: filters.status !== 'all' ? filters.status : undefined,
+  });
+  
+  // Following your pattern: const [createTrigger] = useCreateMutation()
+  const [createMentorTrigger] = useCreateMentorMutation();
+
   const mentorForm = useForm<z.infer<typeof mentorFormSchema>>({
     resolver: zodResolver(mentorFormSchema),
     defaultValues: {
@@ -41,28 +61,53 @@ export default function MentorsPage() {
     }
   });
 
-  // Use RTK Query with real-time updates
-  const { data: mentors = [], isLoading, refetch } = useGetMentorsQuery(undefined, {
-    pollingInterval: 60000, // Poll every 60 seconds
-    refetchOnFocus: true,
-    refetchOnReconnect: true,
-  });
-
-  const [createMentor] = useCreateMentorMutation();
+  // Handle RTK Query errors and store state
+  useEffect(() => {
+    if (error && 'data' in error) {
+      toast({
+        title: 'Error loading mentors',
+        description: (error.data as { message?: string })?.message || 'Failed to load mentors',
+        variant: 'destructive',
+      });
+    }
+    
+    // Use store error if available
+    if (storeError) {
+      toast({
+        title: 'Store Error',
+        description: storeError,
+        variant: 'destructive',
+      });
+    }
+  }, [error, storeError, toast]);
 
   const handleCreateMentor = async (data: z.infer<typeof mentorFormSchema>) => {
     try {
-      await createMentor(data as any).unwrap();
+      console.log('Creating mentor with data:', data);
+      
+      // Following your reference pattern: await createTrigger(payload).unwrap()
+      const response = await createMentorTrigger({
+        ...data,
+        password: 'defaultPassword123' // In real app, generate or let user set
+      }).unwrap();
+      
+      console.log('Mentor created successfully:', response);
       setIsCreateDialogOpen(false);
       mentorForm.reset();
       toast({
         title: "Success",
-        description: "Mentor created successfully",
+        description: "Mentor created successfully! RTK Query auto-updated cache.",
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
+      console.error('Failed to create mentor:', error);
+      const errorMessage = 
+        (error as { data?: { message?: string }, message?: string })?.data?.message || 
+        (error as { message?: string })?.message || 
+        "Failed to create mentor";
+      
       toast({
         title: "Error",
-        description: error?.data?.message || "Failed to create mentor",
+        description: errorMessage,
         variant: "destructive",
       });
     }
@@ -128,14 +173,26 @@ export default function MentorsPage() {
             </div>
           </div>
           
-          <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-            <DialogTrigger asChild>
-              <button className="btn-gradient hover-lift flex items-center gap-2">
-                <Plus className="w-4 h-4" />
-                Add Mentor
-              </button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-[500px] bg-card border border-white/10 p-6 rounded-xl">
+          <div className="flex gap-2">
+            <button 
+              onClick={() => {
+                console.log('Refreshing mentors with RTK Query...');
+                refetch();
+              }}
+              className="btn-outline hover-lift flex items-center gap-2"
+            >
+              <Search className="w-4 h-4" />
+              Refresh ({mentors.length})
+            </button>
+            
+            <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+              <DialogTrigger asChild>
+                <button className="btn-gradient hover-lift flex items-center gap-2">
+                  <Plus className="w-4 h-4" />
+                  Add Mentor
+                </button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-[500px] bg-card border border-white/10 p-6 rounded-xl">
               <DialogHeader>
                 <div className="flex items-center gap-3 mb-4">
                   <div className="w-8 h-8 gradient-primary rounded-lg flex items-center justify-center">
@@ -243,7 +300,8 @@ export default function MentorsPage() {
                 </form>
               </Form>
             </DialogContent>
-          </Dialog>
+            </Dialog>
+          </div>
         </motion.div>
 
         {/* Premium Filters */}
@@ -313,7 +371,7 @@ export default function MentorsPage() {
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {mentors && mentors.length > 0 ? mentors.map((mentor: any, index: number) => (
+            {mentors && mentors.length > 0 ? mentors.map((mentor, index: number) => (
               <motion.div
                 key={mentor.id}
                 initial={{ opacity: 0, y: 30, scale: 0.9 }}

@@ -1,0 +1,10 @@
+export const SET_TASKS = "tasks/SET_TASKS" as const;
+export const ADD_TASK = "tasks/ADD_TASK" as const;
+export const UPDATE_TASK = "tasks/UPDATE_TASK" as const;
+export const DELETE_TASK = "tasks/DELETE_TASK" as const;
+export const SET_SELECTED_TASK = "tasks/SET_SELECTED_TASK" as const;
+export const SET_TASK_SUBMISSIONS = "tasks/SET_TASK_SUBMISSIONS" as const;
+export const ADD_TASK_SUBMISSION = "tasks/ADD_TASK_SUBMISSION" as const;
+export const SET_LOADING = "tasks/SET_LOADING" as const;
+export const SET_ERROR = "tasks/SET_ERROR" as const;
+export const CLEAR_ERROR = "tasks/CLEAR_ERROR" as const;

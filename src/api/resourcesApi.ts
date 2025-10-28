@@ -1,63 +1,83 @@
-import { apiSlice } from './apiSlice';
-import type { Resource } from '../types';
+// Resources API following your reference pattern
+import { api } from './api';
+import type {
+  ResourceRO,
+  CreateResourceDTO,
+  UpdateResourceDTO,
+  ResourcesQueryDTO,
+} from './dto';
 
-export const resourcesApi = apiSlice.injectEndpoints({
-  endpoints: (builder) => ({
-    getResources: builder.query<Resource[], { category?: string; difficulty?: string; type?: string; search?: string }>({
-      query: (params) => {
-        const queryParams = new URLSearchParams();
-        if (params.category) queryParams.append('category', params.category);
-        if (params.difficulty) queryParams.append('difficulty', params.difficulty);
-        if (params.type) queryParams.append('type', params.type);
-        if (params.search) queryParams.append('search', params.search);
+// Resources API endpoints
+export const resourcesApi = api.injectEndpoints({
+  endpoints: (build) => ({
+    getResources: build.query<ResourceRO[], ResourcesQueryDTO>({
+      query: (params = {}) => {
+        const queryString = new URLSearchParams();
+        if (params.type) queryString.append('type', params.type);
+        if (params.category) queryString.append('category', params.category);
+        if (params.difficulty) queryString.append('difficulty', params.difficulty);
+        if (params.search) queryString.append('search', params.search);
+        if (params.tags?.length) queryString.append('tags', params.tags.join(','));
+        if (params.page) queryString.append('page', params.page.toString());
+        if (params.limit) queryString.append('limit', params.limit.toString());
         
         return {
           url: '/api/resources',
-          params: queryParams,
+          params: queryString,
         };
       },
-      providesTags: ['Resources'],
+      providesTags: (result) =>
+        result
+          ? [...result.map(({ id }) => ({ type: 'Resources' as const, id })), 'Resources']
+          : ['Resources'],
     }),
     
-    getResourceById: builder.query<Resource, string>({
+    getResourceById: build.query<ResourceRO, string>({
       query: (id) => `/api/resources/${id}`,
-      providesTags: (result, error, id) => [{ type: 'Resources', id }],
+      providesTags: (_, __, id) => [{ type: 'Resources', id }],
     }),
     
-    createResource: builder.mutation<Resource, Partial<Resource>>({
+    createResource: build.mutation<ResourceRO, CreateResourceDTO>({
       query: (resourceData) => ({
         url: '/api/resources',
         method: 'POST',
         body: resourceData,
       }),
-      invalidatesTags: ['Resources'],
+      invalidatesTags: ['Resources', 'DashboardActivity'],
     }),
     
-    updateResource: builder.mutation<Resource, { id: string; resourceData: Partial<Resource> }>({
-      query: ({ id, resourceData }) => ({
+    updateResource: build.mutation<ResourceRO, { id: string; data: UpdateResourceDTO }>({
+      query: ({ id, data }) => ({
         url: `/api/resources/${id}`,
         method: 'PATCH',
-        body: resourceData,
+        body: data,
       }),
-      invalidatesTags: (result, error, { id }) => [
+      invalidatesTags: (_, __, { id }) => [
         { type: 'Resources', id },
         'Resources',
+        'DashboardActivity',
       ],
     }),
     
-    deleteResource: builder.mutation<void, string>({
+    deleteResource: build.mutation<void, string>({
       query: (id) => ({
         url: `/api/resources/${id}`,
         method: 'DELETE',
       }),
-      invalidatesTags: ['Resources'],
+      invalidatesTags: (_, __, id) => [
+        { type: 'Resources', id },
+        'Resources',
+        'DashboardActivity',
+      ],
     }),
   }),
 });
 
 export const {
   useGetResourcesQuery,
+  useLazyGetResourcesQuery,
   useGetResourceByIdQuery,
+  useLazyGetResourceByIdQuery,
   useCreateResourceMutation,
   useUpdateResourceMutation,
   useDeleteResourceMutation,

@@ -1,0 +1,10 @@
+export const SET_BUDDIES = "buddies/SET_BUDDIES" as const;
+export const ADD_BUDDY = "buddies/ADD_BUDDY" as const;
+export const UPDATE_BUDDY = "buddies/UPDATE_BUDDY" as const;
+export const DELETE_BUDDY = "buddies/DELETE_BUDDY" as const;
+export const SET_SELECTED_BUDDY = "buddies/SET_SELECTED_BUDDY" as const;
+export const SET_BUDDY_TASKS = "buddies/SET_BUDDY_TASKS" as const;
+export const SET_BUDDY_PROGRESS = "buddies/SET_BUDDY_PROGRESS" as const;
+export const SET_LOADING = "buddies/SET_LOADING" as const;
+export const SET_ERROR = "buddies/SET_ERROR" as const;
+export const CLEAR_ERROR = "buddies/CLEAR_ERROR" as const;

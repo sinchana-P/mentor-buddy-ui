@@ -33,7 +33,7 @@ export default function CurriculumDetailsPage() {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   
-  const { data: curriculum = {} as any, isLoading, isError } = useGetCurriculumByIdQuery(curriculumId || '');
+  const { data: curriculum, isLoading, isError } = useGetCurriculumByIdQuery(curriculumId || '');
   const [updateCurriculum, { isLoading: isUpdating }] = useUpdateCurriculumMutation();
   const [deleteCurriculum, { isLoading: isDeleting }] = useDeleteCurriculumMutation();
   
@@ -53,10 +53,10 @@ export default function CurriculumDetailsPage() {
   React.useEffect(() => {
     if (curriculum) {
       form.reset({
-        title: curriculum.title,
-        description: curriculum.description,
-        domain: curriculum.domain,
-        content: curriculum.content,
+        title: curriculum.title || '',
+        description: curriculum.description || '',
+        domain: curriculum.domain || 'frontend',
+        content: curriculum.content || '',
       });
     }
   }, [curriculum, form]);
@@ -68,7 +68,7 @@ export default function CurriculumDetailsPage() {
       await updateCurriculum({
         id: curriculumId,
         ...data,
-        curriculumData: undefined as any
+        curriculumData: undefined
       }).unwrap();
       
       toast({
@@ -77,7 +77,7 @@ export default function CurriculumDetailsPage() {
       });
       
       setIsEditDialogOpen(false);
-    } catch (error) {
+    } catch {
       toast({
         title: 'Error',
         description: 'Failed to update curriculum',
@@ -98,7 +98,7 @@ export default function CurriculumDetailsPage() {
       });
       
       setLocation('/curriculum');
-    } catch (error) {
+    } catch {
       toast({
         title: 'Error',
         description: 'Failed to delete curriculum',
@@ -167,7 +167,7 @@ export default function CurriculumDetailsPage() {
               <ArrowLeft className="h-4 w-4 mr-2" />
               Back
             </Button>
-            <h1 className="text-3xl font-bold">{curriculum.title}</h1>
+            <h1 className="text-3xl font-bold">{curriculum?.title}</h1>
           </div>
           
           <div className="flex space-x-2">
@@ -304,7 +304,7 @@ export default function CurriculumDetailsPage() {
               <CardHeader>
                 <CardTitle>Curriculum Details</CardTitle>
                 <CardDescription>
-                  Domain: {curriculum.domain.charAt(0).toUpperCase() + curriculum.domain.slice(1)}
+                  Domain: {curriculum?.domain ? curriculum.domain.charAt(0).toUpperCase() + curriculum.domain.slice(1) : 'Unknown'}
                 </CardDescription>
               </CardHeader>
               
@@ -322,9 +322,9 @@ export default function CurriculumDetailsPage() {
                 
                 <TabsContent value="content" className="p-6 pt-2">
                   <div className="prose dark:prose-invert max-w-none">
-                    <h3 className="text-xl font-semibold mb-4">{curriculum.title}</h3>
-                    <p className="text-muted-foreground mb-6">{curriculum.description}</p>
-                    <div className="whitespace-pre-wrap">{curriculum.content}</div>
+                    <h3 className="text-xl font-semibold mb-4">{curriculum?.title}</h3>
+                    <p className="text-muted-foreground mb-6">{curriculum?.description}</p>
+                    <div className="whitespace-pre-wrap">{curriculum?.content}</div>
                   </div>
                 </TabsContent>
                 
@@ -332,29 +332,29 @@ export default function CurriculumDetailsPage() {
                   <div className="space-y-4">
                     <div>
                       <h4 className="text-sm font-medium">Created By</h4>
-                      <p>{curriculum.createdBy || 'Unknown'}</p>
+                      <p>{curriculum?.createdBy || 'Unknown'}</p>
                     </div>
                     
                     <div>
                       <h4 className="text-sm font-medium">Created At</h4>
-                      <p>{new Date(curriculum.createdAt).toLocaleString()}</p>
+                      <p>{curriculum?.createdAt ? new Date(curriculum.createdAt).toLocaleString() : 'Unknown'}</p>
                     </div>
                     
-                    {curriculum.updatedAt && (
+                    {curriculum?.updatedAt && (
                       <div>
                         <h4 className="text-sm font-medium">Last Updated</h4>
                         <p>{new Date(curriculum.updatedAt).toLocaleString()}</p>
                       </div>
                     )}
                     
-                    {curriculum.attachments && curriculum.attachments.length > 0 && (
+                    {curriculum?.attachments && curriculum.attachments.length > 0 && (
                       <div>
                         <h4 className="text-sm font-medium">Attachments</h4>
                         <ul className="list-disc pl-5">
-                          {curriculum.attachments.map((attachment: any, index: number) => (
+                          {curriculum.attachments.split(',').map((attachment: string, index: number) => (
                             <li key={index}>
-                              <a href={attachment.url} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">
-                                {attachment.name}
+                              <a href={attachment.trim()} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">
+                                {attachment.trim()}
                               </a>
                             </li>
                           ))}

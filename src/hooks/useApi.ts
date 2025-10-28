@@ -1,7 +1,7 @@
 // Re-export RTK Query hooks for backward compatibility
 // This allows existing components to continue using the same hook names
 export {
-  useGetHealthQuery as useHealth,
+  useGetHealthCheckQuery as useHealth,
   useGetUsersQuery as useUsers,
   useGetMentorsQuery as useMentors,
   useGetBuddiesQuery as useBuddies,

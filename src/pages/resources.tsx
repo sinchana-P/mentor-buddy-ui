@@ -1,19 +1,17 @@
 import { useState, useEffect } from 'react';
+import { useSelector } from 'react-redux';
 import { motion } from 'framer-motion';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
+import type { RootState } from '@/store';
+// RTK Query imports following your reference pattern  
+// import { useGetResourcesQuery, useCreateResourceMutation } from '@/api';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
   BookOpen, 
   Video, 
   FileText, 
   ExternalLink, 
   Download, 
-  Search, 
-  Filter,
+  Search,
   Play,
   Bookmark,
   Share2,
@@ -46,6 +44,13 @@ export default function Resources() {
   const [resources, setResources] = useState<Resource[]>([]);
   const [filteredResources, setFilteredResources] = useState<Resource[]>([]);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+
+  // ✅ Following your reference pattern: useSelector to read from store
+  const isLoading = useSelector((state: RootState) => state.resources.loading);
+
+  // ✅ RTK Query hooks for API operations (following your reference pattern)
+  // const { data: resourcesFromApi } = useGetResourcesQuery({});
+  // const [createResourceTrigger] = useCreateResourceMutation();
 
   useEffect(() => {
     // TODO: Fetch resources from API
@@ -184,18 +189,6 @@ export default function Resources() {
     }
   };
 
-  const getDifficultyColor = (difficulty: string) => {
-    switch (difficulty) {
-      case 'beginner':
-        return 'bg-green-500/20 text-green-300 border border-green-500/30';
-      case 'intermediate':
-        return 'bg-yellow-500/20 text-yellow-300 border border-yellow-500/30';
-      case 'advanced':
-        return 'bg-red-500/20 text-red-300 border border-red-500/30';
-      default:
-        return 'bg-white/10 text-white/70 border border-white/20';
-    }
-  };
 
   const handleBookmark = (resourceId: string) => {
     setResources(prev => prev.map(resource =>
@@ -231,6 +224,23 @@ export default function Resources() {
       console.error('Error downloading resource:', error);
     }
   };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen p-6">
+        <div className="premium-card animate-pulse">
+          <div className="space-y-6">
+            <div className="h-8 loading-shimmer rounded w-1/4"></div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {[...Array(6)].map((_, i) => (
+                <div key={i} className="h-64 premium-card loading-shimmer"></div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen p-6 space-y-8">

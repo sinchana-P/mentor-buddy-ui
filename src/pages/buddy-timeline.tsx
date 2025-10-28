@@ -1,10 +1,8 @@
-import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { useBuddies, useTasks } from '@/hooks/useApi';
+import { useGetBuddiesQuery, useGetTasksQuery } from '@/api';
 import { useRoute } from 'wouter';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import TaskTimeline from '@/components/TaskTimeline';
 import TechnicalChecklist from '@/components/TechnicalChecklist';
@@ -12,21 +10,22 @@ import WorkPortfolio from '@/components/WorkPortfolio';
 import LoadingSpinner from '@/components/ui/loading-spinner';
 import { ArrowLeft, Plus, Edit } from 'lucide-react';
 import { useLocation } from 'wouter';
-import type { PortfolioItem, Task } from '@/types';
+import type { PortfolioItem } from '@/types';
+import type { BuddyRO } from '@/api/dto';
 
 export default function BuddyTimelinePage() {
   const [, params] = useRoute('/buddies/:id');
   const [, setLocation] = useLocation();
   const buddyId = params?.id;
 
-  const { data: buddies = [], isLoading: buddyLoading } = useBuddies();
-  const buddy = buddies.find((b: any) => b.id === buddyId) || null;
+  const { data: buddies = [], isLoading: buddyLoading } = useGetBuddiesQuery({});
+  const buddy = buddies.find((b: BuddyRO) => b.id === buddyId) || null;
   
-  const { data: tasks = [], isLoading: tasksLoading } = useTasks({ buddyId });
+  const { data: tasks = [], isLoading: tasksLoading } = useGetTasksQuery({ buddyId });
   
   // TODO: Add individual buddy endpoints for progress and portfolio
   const progress = { topics: [], percentage: 0 };
-  const portfolio: any[] = [];
+  const portfolio: PortfolioItem[] = [];
 
   if (buddyLoading) {
     return (
@@ -59,7 +58,7 @@ export default function BuddyTimelinePage() {
         {/* Back Button */}
         <Button 
           variant="ghost" 
-          onClick={() => setLocation(`/mentors/${buddy.assignedMentorId}`)}
+          onClick={() => setLocation(`/mentors/${buddy.mentorId || ''}`)}
           className="mb-6"
         >
           <ArrowLeft className="w-4 h-4 mr-2" />
@@ -81,10 +80,10 @@ export default function BuddyTimelinePage() {
                   <h1 className="text-2xl font-bold mb-2">{buddy.user?.name}</h1>
                   <p className="text-muted-foreground mb-1">Junior {buddy.user?.domainRole} Developer</p>
                   <p className="text-sm text-muted-foreground mb-2">
-                    Joined: {new Date(buddy.joinDate).toLocaleDateString()}
+                    Joined: {buddy.joinDate ? new Date(buddy.joinDate).toLocaleDateString() : 'Unknown'}
                   </p>
                   <p className="text-sm text-muted-foreground">
-                    Mentor: <span className="text-primary">{buddy.mentor?.user?.name}</span>
+                    Mentor: <span className="text-primary">{buddy.mentorId || 'Not assigned'}</span>
                   </p>
                 </div>
               </div>
@@ -116,7 +115,16 @@ export default function BuddyTimelinePage() {
                     <LoadingSpinner />
                   </div>
                 ) : (
-                  <TaskTimeline tasks={tasks as any || []} buddy={buddy} />
+                  <TaskTimeline 
+                    tasks={tasks.map(task => ({
+                      ...task,
+                      status: task.status as 'pending' | 'in_progress' | 'completed' | 'overdue'
+                    })) || []} 
+                    buddy={{
+                      ...buddy,
+                      mentor: { user: { name: buddy?.mentorName || 'Not assigned', avatarUrl: '' } }
+                    }} 
+                  />
                 )}
               </CardContent>
             </Card>
@@ -131,7 +139,7 @@ export default function BuddyTimelinePage() {
             />
 
             {/* Work Portfolio */}
-            <WorkPortfolio portfolio={portfolio as PortfolioItem[]|| []} />
+            <WorkPortfolio portfolio={portfolio || []} />
           </div>
         </div>
       </motion.div>

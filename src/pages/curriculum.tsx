@@ -29,7 +29,7 @@ export default function CurriculumPage() {
   });
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   
-  const { data: curriculum = [] as any[], isLoading, isError } = useGetCurriculumQuery({
+  const { data: curriculum = [] as unknown[], isLoading, isError } = useGetCurriculumQuery({
     domain: filters.domain !== 'all' ? filters.domain : undefined,
     search: filters.search || undefined,
   });
@@ -51,7 +51,7 @@ export default function CurriculumPage() {
     setFilters(prev => ({ ...prev, [key]: value }));
   };
   
-  const onSubmit = async (data: z.infer<typeof formSchema>) => {
+  const handleFormSubmit = async (data: z.infer<typeof formSchema>) => {
     try {
       await createCurriculum({
         ...data,
@@ -65,7 +65,7 @@ export default function CurriculumPage() {
       
       form.reset();
       setIsAddDialogOpen(false);
-    } catch (error) {
+    } catch {
       toast({
         title: 'Error',
         description: 'Failed to create curriculum item',
@@ -96,7 +96,7 @@ export default function CurriculumPage() {
               </DialogHeader>
               
               <Form {...form}>
-                <form onSubmit={() => {}} className="space-y-4">
+                <form onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-4">
                   <FormField
                     control={form.control}
                     name="title"
