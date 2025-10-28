@@ -9,10 +9,7 @@ const authReducer = (
   switch (action.type) {
     case constants.LOGIN_USER:
     case constants.REGISTER_USER:
-      // Store auth data in localStorage
-      localStorage.setItem('auth_token', action.payload.token);
-      localStorage.setItem('auth_user', JSON.stringify(action.payload.user));
-      
+      // redux-persist will handle localStorage automatically
       return {
         ...state,
         user: action.payload.user,
@@ -23,10 +20,7 @@ const authReducer = (
       };
 
     case constants.LOGOUT_USER:
-      // Clear localStorage
-      localStorage.removeItem('auth_token');
-      localStorage.removeItem('auth_user');
-      
+      // redux-persist will handle localStorage cleanup automatically
       return {
         ...state,
         user: null,
@@ -37,9 +31,7 @@ const authReducer = (
       };
 
     case constants.SET_USER:
-      // Update localStorage
-      localStorage.setItem('auth_user', JSON.stringify(action.payload));
-      
+      // redux-persist will handle localStorage automatically
       return {
         ...state,
         user: action.payload,
@@ -47,9 +39,7 @@ const authReducer = (
       };
 
     case constants.SET_TOKEN:
-      // Update localStorage
-      localStorage.setItem('auth_token', action.payload);
-      
+      // redux-persist will handle localStorage automatically
       return {
         ...state,
         token: action.payload,
@@ -57,9 +47,7 @@ const authReducer = (
       };
 
     case constants.UPDATE_USER:
-      // Update localStorage
-      localStorage.setItem('auth_user', JSON.stringify(action.payload));
-      
+      // redux-persist will handle localStorage automatically
       return {
         ...state,
         user: action.payload,

@@ -9,6 +9,7 @@ export * from './buddiesApi';
 export * from './tasksApi';
 export * from './resourcesApi';
 export * from './dashboardApi';
+export * from './portfolioApi';
 
 // Export DTO types
 export * from './dto';

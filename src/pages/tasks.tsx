@@ -43,6 +43,7 @@ export default function TasksPage() {
 
   const form = useForm<TaskFormData>({
     resolver: zodResolver(taskSchema),
+    mode: 'onChange', // Validate on change
     defaultValues: {
       title: '',
       description: '',
@@ -53,6 +54,7 @@ export default function TasksPage() {
 
   const editForm = useForm<TaskFormData>({
     resolver: zodResolver(taskSchema),
+    mode: 'onChange', // Validate on change
     defaultValues: {
       title: '',
       description: '',
@@ -330,10 +332,10 @@ export default function TasksPage() {
                       </button>
                       <button
                         type="submit"
-                        disabled={isCreating}
+                        disabled={isCreating || !form.formState.isValid}
                         className="btn-gradient"
                       >
-                        {isCreating ? 'Creating...' : 'Create Task'}
+                        {isCreating ? 'Creating...' : !form.formState.isValid ? 'Fill Required Fields' : 'Create Task'}
                       </button>
                     </div>
                   </form>
@@ -521,8 +523,12 @@ export default function TasksPage() {
                 <button type="button" onClick={() => setEditingTaskId(null)} className="px-4 py-2 rounded-lg bg-white/10 hover:bg-white/20 transition-colors text-white/80 hover:text-white">
                   Cancel
                 </button>
-                <button type="submit" disabled={isUpdating} className="btn-gradient">
-                  {isUpdating ? 'Saving...' : 'Save'}
+                <button
+                  type="submit"
+                  disabled={isUpdating || !editForm.formState.isValid}
+                  className="btn-gradient"
+                >
+                  {isUpdating ? 'Saving...' : !editForm.formState.isValid ? 'Fill Required Fields' : 'Save'}
                 </button>
               </div>
               </form>

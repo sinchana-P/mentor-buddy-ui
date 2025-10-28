@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import * as React from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -27,7 +28,9 @@ import {
   useGetBuddiesQuery,
   useCreateBuddyMutation,
   useDeleteBuddyMutation,
+  useGetMentorsQuery,
 } from '@/api';
+import { useGetTopicsQuery } from '@/api/topicsApi';
 
 // Import EditBuddyModal
 import EditBuddyModal from '@/components/EditBuddyModal';
@@ -38,7 +41,8 @@ import type { BuddyRO } from '@/api/dto';
 const buddyFormSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters'),
   email: z.string().email('Please enter a valid email'),
-  domainRole: z.enum(['frontend', 'backend', 'devops', 'qa', 'hr'])
+  domainRole: z.enum(['frontend', 'backend', 'devops', 'qa', 'hr']),
+  assignedMentorId: z.string().min(1, 'Please select a mentor')
 });
 
 // Topics by domain role
@@ -60,7 +64,7 @@ export default function BuddiesPage() {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [buddyToDelete, setBuddyToDelete] = useState<BuddyRO | null>(null);
-  const [selectedTopics, setSelectedTopics] = useState<string[]>([]);
+  const [selectedTopicIds, setSelectedTopicIds] = useState<string[]>([]);
   const { toast } = useToast();
 
   // ✅ RTK Query hooks for API operations (following your exact reference pattern)
@@ -80,31 +84,54 @@ export default function BuddiesPage() {
   const [createBuddyTrigger, { isLoading: isBuddyCreating }] = useCreateBuddyMutation();
   const [deleteBuddyTrigger, { isLoading: isBuddyDeleting }] = useDeleteBuddyMutation();
 
+  // Fetch mentors for the dropdown
+  const { data: mentors = [] } = useGetMentorsQuery({});
+
+  // Initialize form first
   const buddyForm = useForm<z.infer<typeof buddyFormSchema>>({
     resolver: zodResolver(buddyFormSchema),
+    mode: 'onChange', // Validate on change for instant feedback
     defaultValues: {
       name: '',
       email: '',
-      domainRole: 'frontend'
+      domainRole: 'frontend',
+      assignedMentorId: ''
     }
   });
+
+  // Fetch topics for the selected domain role
+  const selectedDomain = buddyForm.watch('domainRole');
+  const { data: availableTopics = [] } = useGetTopicsQuery(
+    { domainRole: selectedDomain },
+    { skip: !selectedDomain }
+  );
+
+  // Auto-select all topics when domain changes or topics load
+  React.useEffect(() => {
+    if (availableTopics.length > 0) {
+      const allTopicIds = availableTopics.map(t => t.id);
+      setSelectedTopicIds(allTopicIds);
+    }
+  }, [availableTopics]);
 
   // ✅ Following your exact handleSubmit pattern
   const handleCreateBuddy = async (data: z.infer<typeof buddyFormSchema>) => {
     try {
+      // Pass selected topic IDs and assignedMentorId to backend
       await createBuddyTrigger({
         name: data.name,
         email: data.email,
         domainRole: data.domainRole,
         password: 'defaultPassword123', // In real app, generate or let user set
-        topics: selectedTopics // Send selected topics
+        assignedMentorId: data.assignedMentorId, // Pass assigned mentor ID
+        topicIds: selectedTopicIds // Pass selected topic IDs
       }).unwrap();
 
       // RTK Query auto-updates cache, no manual dispatch needed
 
       setIsCreateDialogOpen(false);
       buddyForm.reset();
-      setSelectedTopics([]); // Reset topics
+      setSelectedTopicIds([]); // Reset topics
 
       toast({
         title: 'Success',
@@ -344,46 +371,100 @@ export default function BuddiesPage() {
                       )}
                     />
 
+                    <FormField
+                      control={buddyForm.control}
+                      name="assignedMentorId"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="form-label">Assigned Mentor</FormLabel>
+                          <Select value={field.value} onValueChange={field.onChange}>
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select a mentor" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              {mentors.map((mentor: any) => (
+                                <SelectItem key={mentor.id} value={mentor.id}>
+                                  {mentor.user?.name || mentor.name || 'Unknown Mentor'} - {mentor.user?.domainRole || mentor.domainRole}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
                     {/* Topics Selection */}
                     <div className="space-y-2">
                       <FormLabel className="form-label">Learning Topics (Optional)</FormLabel>
-                      <div className="max-h-48 overflow-y-auto space-y-2 border border-white/10 rounded-lg p-3 bg-white/5">
-                        {DOMAIN_TOPICS[buddyForm.watch('domainRole')]?.map((topic) => (
-                          <div key={topic} className="flex items-center space-x-2">
-                            <input
-                              type="checkbox"
-                              id={`topic-${topic}`}
-                              className="w-4 h-4 rounded border-white/20 bg-white/10 text-blue-600 focus:ring-2 focus:ring-blue-500"
-                              checked={selectedTopics.includes(topic)}
-                              onChange={(e) => {
-                                if (e.target.checked) {
-                                  setSelectedTopics([...selectedTopics, topic]);
-                                } else {
-                                  setSelectedTopics(selectedTopics.filter(t => t !== topic));
-                                }
-                              }}
-                            />
-                            <label htmlFor={`topic-${topic}`} className="text-sm text-white/80 cursor-pointer">
-                              {topic}
-                            </label>
-                          </div>
-                        ))}
-                      </div>
-                      <p className="text-xs text-white/50">
+                      <p className="text-xs text-white/50 mb-2">
                         Select topics for this buddy's learning path. All topics start unchecked and can be tracked in the Progress tab.
                       </p>
+                      <div className="max-h-48 overflow-y-auto space-y-2 border border-white/10 rounded-lg p-3 bg-white/5">
+                        {availableTopics.length > 0 ? (
+                          availableTopics.map((topic) => (
+                            <div key={topic.id} className="flex items-center space-x-2">
+                              <input
+                                type="checkbox"
+                                id={`topic-${topic.id}`}
+                                className="w-4 h-4 rounded border-white/20 bg-white/10 text-blue-600 focus:ring-2 focus:ring-blue-500 cursor-pointer"
+                                checked={selectedTopicIds.includes(topic.id)}
+                                onChange={(e) => {
+                                  if (e.target.checked) {
+                                    setSelectedTopicIds([...selectedTopicIds, topic.id]);
+                                  } else {
+                                    setSelectedTopicIds(selectedTopicIds.filter(id => id !== topic.id));
+                                  }
+                                }}
+                              />
+                              <label htmlFor={`topic-${topic.id}`} className="text-sm text-white/80 cursor-pointer flex-1">
+                                {topic.name}
+                              </label>
+                              <span className="text-xs text-white/40">{topic.category}</span>
+                            </div>
+                          ))
+                        ) : (
+                          <p className="text-sm text-white/50 text-center py-4">
+                            Loading topics for {selectedDomain}...
+                          </p>
+                        )}
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <p className="text-xs text-white/40">
+                          {selectedTopicIds.length} of {availableTopics.length} topics selected
+                        </p>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (selectedTopicIds.length === availableTopics.length) {
+                              setSelectedTopicIds([]);
+                            } else {
+                              setSelectedTopicIds(availableTopics.map(t => t.id));
+                            }
+                          }}
+                          className="text-xs text-blue-400 hover:text-blue-300"
+                        >
+                          {selectedTopicIds.length === availableTopics.length ? 'Deselect All' : 'Select All'}
+                        </button>
+                      </div>
                     </div>
 
                     <div className="flex justify-end space-x-3 pt-6">
-                      <button 
-                        type="button" 
+                      <button
+                        type="button"
                         className="px-6 py-2.5 rounded-lg border border-white/20 bg-white/5 hover:bg-white/10 transition-all duration-300 text-white/80 hover:text-white"
                         onClick={() => setIsCreateDialogOpen(false)}
                       >
                         Cancel
                       </button>
-                      <button type="submit" className="btn-gradient" disabled={isBuddyCreating}>
-                        {isBuddyCreating ? 'Creating...' : 'Create Buddy'}
+                      <button
+                        type="submit"
+                        className="btn-gradient"
+                        disabled={isBuddyCreating || !buddyForm.formState.isValid}
+                      >
+                        {isBuddyCreating ? 'Creating...' : !buddyForm.formState.isValid ? 'Fill Required Fields' : 'Create Buddy'}
                       </button>
                     </div>
                   </form>

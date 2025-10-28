@@ -3,11 +3,11 @@ import type { Topic } from '../types';
 
 export const topicsApi = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
-    getTopics: builder.query<Topic[], { domain?: string }>({
-      query: (params) => {
+    getTopics: builder.query<Topic[], { domainRole?: string }>({
+      query: (params = {}) => {
         const queryParams = new URLSearchParams();
-        if (params.domain) queryParams.append('domain', params.domain);
-        
+        if (params.domainRole) queryParams.append('domainRole', params.domainRole);
+
         return {
           url: '/api/topics',
           params: queryParams,

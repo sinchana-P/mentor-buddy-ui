@@ -64,6 +64,17 @@ export default function AddResourceModal({ isOpen, onClose }: AddResourceModalPr
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
+  // Form validation
+  const isFormValid = () => {
+    return (
+      formData.title.trim() !== '' &&
+      formData.description.trim() !== '' &&
+      formData.type.trim() !== '' &&
+      formData.category.trim() !== '' &&
+      formData.url.trim() !== ''
+    );
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="fixed-modal sm:max-w-[600px]">
@@ -204,14 +215,14 @@ export default function AddResourceModal({ isOpen, onClose }: AddResourceModalPr
           <button onClick={onClose} className="px-4 py-2 rounded-lg bg-white/10 hover:bg-white/20 transition-colors text-white/80 hover:text-white">
             Cancel
           </button>
-          <button 
-            onClick={handleSubmit} 
-            disabled={isCreating || !formData.title || !formData.url || !formData.type || !formData.category || !formData.difficulty}
+          <button
+            onClick={handleSubmit}
+            disabled={isCreating || !isFormValid()}
             className="btn-gradient"
           >
             {isCreating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            <Plus className="mr-2 h-4 w-4" />
-            Add Resource
+            {!isCreating && <Plus className="mr-2 h-4 w-4" />}
+            {isCreating ? 'Adding...' : !isFormValid() ? 'Fill Required Fields' : 'Add Resource'}
           </button>
         </DialogFooter>
       </DialogContent>

@@ -52,6 +52,7 @@ export default function MentorsPage() {
 
   const mentorForm = useForm<z.infer<typeof mentorFormSchema>>({
     resolver: zodResolver(mentorFormSchema),
+    mode: 'onChange', // Validate on change for instant feedback
     defaultValues: {
       name: '',
       email: '',
@@ -293,8 +294,12 @@ export default function MentorsPage() {
                     >
                       Cancel
                     </button>
-                    <button type="submit" className="btn-gradient" disabled={false}>
-                      Create Mentor
+                    <button
+                      type="submit"
+                      className="btn-gradient"
+                      disabled={!mentorForm.formState.isValid}
+                    >
+                      {!mentorForm.formState.isValid ? 'Fill Required Fields' : 'Create Mentor'}
                     </button>
                   </div>
                 </form>

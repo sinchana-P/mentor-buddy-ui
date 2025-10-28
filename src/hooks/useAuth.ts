@@ -41,14 +41,12 @@ export function useAuth() {
     try {
       dispatch(setLoading(true));
       const result = await signInMutation({ email, password }).unwrap();
-      
-      // Store token in localStorage for RTK Query to use
+
+      // Dispatch actions - redux-persist will handle localStorage
       if (result.token) {
-        localStorage.setItem('auth_token', result.token);
-        localStorage.setItem('auth_user', JSON.stringify(result.user));
         dispatch(setToken(result.token));
       }
-      
+
       dispatch(setUser(result.user));
       return {};
     } catch (error: unknown) {
@@ -59,29 +57,27 @@ export function useAuth() {
   }, [dispatch, signInMutation]);
   
   const signUp = useCallback(async (
-    email: string, 
-    password: string, 
-    name: string, 
-    role: 'manager' | 'mentor' | 'buddy', 
+    email: string,
+    password: string,
+    name: string,
+    role: 'manager' | 'mentor' | 'buddy',
     domainRole: DomainRole
   ) => {
     try {
       dispatch(setLoading(true));
-      const result = await signUpMutation({ 
-        email, 
-        password, 
-        name, 
-        role, 
-        domainRole 
+      const result = await signUpMutation({
+        email,
+        password,
+        name,
+        role,
+        domainRole
       }).unwrap();
-      
-      // Store token in localStorage for RTK Query to use
+
+      // Dispatch actions - redux-persist will handle localStorage
       if (result.token) {
-        localStorage.setItem('auth_token', result.token);
-        localStorage.setItem('auth_user', JSON.stringify(result.user));
         dispatch(setToken(result.token));
       }
-      
+
       dispatch(setUser(result.user));
       return {};
     } catch (error: unknown) {
@@ -97,10 +93,7 @@ export function useAuth() {
     } catch (error) {
       console.error('Logout error:', error);
     } finally {
-      // Clear localStorage
-      localStorage.removeItem('auth_token');
-      localStorage.removeItem('auth_user');
-      // Clear Redux state
+      // Clear Redux state - redux-persist will handle localStorage
       dispatch(logoutUser());
     }
   }, [dispatch, signOutMutation]);

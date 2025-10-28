@@ -40,6 +40,7 @@ export const authApi = api.injectEndpoints({
     
     getCurrentUser: build.query<UserRO, void>({
       query: () => '/api/auth/me',
+      transformResponse: (response: { message: string; user: UserRO }) => response.user,
       providesTags: ['Users'],
     }),
     

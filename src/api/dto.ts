@@ -35,6 +35,7 @@ export interface SignUpDTO {
 }
 
 export interface AuthResponseRO {
+  message: string;
   user: UserRO;
   token: string;
   refreshToken?: string;
@@ -277,6 +278,50 @@ export interface PaginatedResponse<T> {
   page: number;
   limit: number;
   totalPages: number;
+}
+
+// Portfolio types
+export interface PortfolioLink {
+  label: string;
+  url: string;
+  type: 'github' | 'live' | 'other';
+}
+
+export interface PortfolioRO {
+  id: string;
+  buddyId: string;
+  title: string;
+  description: string;
+  technologies: string[];
+  links: PortfolioLink[];
+  resourceUrl?: string | null;
+  resourceType?: string | null;
+  resourceName?: string | null;
+  completedAt?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreatePortfolioDTO {
+  title: string;
+  description: string;
+  technologies?: string[];
+  links?: PortfolioLink[];
+  resourceUrl?: string;
+  resourceType?: string;
+  resourceName?: string;
+  completedAt?: string;
+}
+
+export interface UpdatePortfolioDTO {
+  title?: string;
+  description?: string;
+  technologies?: string[];
+  links?: PortfolioLink[];
+  resourceUrl?: string | null;
+  resourceType?: string | null;
+  resourceName?: string | null;
+  completedAt?: string | null;
 }
 
 // Error response

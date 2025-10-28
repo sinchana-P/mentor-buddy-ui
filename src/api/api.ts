@@ -85,19 +85,17 @@ const withTokenRefresh = (
 ): BaseQueryFn<string | FetchArgs, unknown, FetchBaseQueryError> => {
   return async (args, api, extraOptions) => {
     const result = await baseQuery(args, api, extraOptions);
-    
+
     if (result.error && result.error.status === 401) {
       // Handle 401 responses (invalid/expired tokens)
-      console.warn('401 Unauthorized - clearing auth tokens');
-      localStorage.removeItem('auth_token');
-      localStorage.removeItem('auth_user');
-      
-      // Redirect to auth page
+      console.warn('401 Unauthorized - redirecting to auth page');
+
+      // Redirect to auth page - user will need to log in again
       if (typeof window !== 'undefined') {
         window.location.href = '/auth';
       }
     }
-    
+
     return result;
   };
 };
@@ -186,35 +184,24 @@ const simpleBaseQuery = fetchBaseQuery({
   baseUrl: mentorBuddyBaseUrl,
   credentials: 'include',
   timeout: 15000,
-  prepareHeaders: (headers, { endpoint }) => {
+  prepareHeaders: (headers, { endpoint, getState }) => {
     headers.set("Content-Type", "application/json");
-    
+
     const nonAuthEndpoints = ["signIn", "signUp"];
     if (!nonAuthEndpoints.includes(endpoint)) {
-      // First try to get token using the same method as AuthContext
-      const authToken = localStorage.getItem('auth_token');
-      if (authToken) {
-        // Handle both string tokens and JSON token objects
-        let token = authToken;
-        if (authToken.startsWith('{')) {
-          try {
-            const tokenObj = JSON.parse(authToken);
-            token = tokenObj.access_token || tokenObj.token;
-          } catch (error) {
-            console.error('Error parsing token:', error);
-          }
-        }
-        
-        if (token) {
-          headers.set("Authorization", `Bearer ${token}`);
-        }
+      // Get token from Redux store instead of localStorage
+      const state = getState() as { auth: { token: string | null } };
+      const token = state.auth?.token;
+
+      if (token) {
+        headers.set("Authorization", `Bearer ${token}`);
       }
     }
-    
+
     // Add basic headers for CORS
     headers.set("x-app-name", "Mentor Buddy Management System");
     headers.set("x-app-id", "mentor-buddy-app");
-    
+
     return headers;
   },
 });
@@ -225,7 +212,7 @@ export const api = createApi({
   baseQuery: withTokenRefresh(retry(simpleBaseQuery, { maxRetries: 2 })),
   tagTypes: [
     "Users",
-    "Mentors", 
+    "Mentors",
     "Buddies",
     "Tasks",
     "Resources",
@@ -234,10 +221,15 @@ export const api = createApi({
     "Settings",
     "Progress",
     "Portfolio",
+    "Portfolios",
     "Submissions",
+    "BuddyTopics",
   ],
   refetchOnMountOrArgChange: true,
   endpoints: () => ({}),
 });
+
+// Export as baseApi for endpoint injection
+export const baseApi = api;
 
 export default api;

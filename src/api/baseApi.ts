@@ -32,7 +32,7 @@ const baseQuery = fetchBaseQuery({
 export const mentorBuddyApi = createApi({
   reducerPath: 'mentorBuddyApi',
   baseQuery,
-  tagTypes: ['Buddy', 'Mentor', 'Task', 'Resource', 'Auth'],
+  tagTypes: ['Buddy', 'Mentor', 'Task', 'Resource', 'Auth', 'Portfolios'],
   endpoints: () => ({}),
 });
 
