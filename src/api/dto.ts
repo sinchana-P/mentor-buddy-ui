@@ -142,11 +142,26 @@ export interface TaskRO {
   mentorId: string;
   mentorName?: string;
   status: string;
-  priority: string;
+  priority?: string;
   dueDate?: string;
   completedAt?: string;
   createdAt: string;
-  updatedAt: string;
+  updatedAt?: string;
+  // Nested objects from JOINs
+  buddy?: {
+    name: string;
+    email?: string;
+  };
+  mentor?: {
+    name: string;
+    email?: string;
+  };
+  submissions?: Array<{
+    id: string;
+    githubLink?: string;
+    deployedUrl?: string;
+    notes?: string;
+  }>;
 }
 
 export interface CreateTaskDTO {

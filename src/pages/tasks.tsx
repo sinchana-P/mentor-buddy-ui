@@ -386,16 +386,27 @@ export default function TasksPage() {
             </div>
             <p className="text-white/70 mb-4">{task.description}</p>
             <div className="flex items-center justify-between text-sm text-white/60">
-              <div className="flex items-center gap-4">
-                <span>Assigned to: {task.buddy?.name || 'Unknown'}</span>
+              <div className="flex items-center gap-4 flex-wrap">
+                <span>
+                  <span className="text-white/40">Created by:</span>{' '}
+                  <span className="text-blue-400 font-medium">{task.mentor?.name || task.mentorName || 'Unknown'}</span>
+                </span>
+                <span className="text-white/20">•</span>
+                <span>
+                  <span className="text-white/40">Assigned to:</span>{' '}
+                  <span className="text-purple-400 font-medium">{task.buddy?.name || task.buddyName || 'Unknown'}</span>
+                </span>
                 {task.dueDate && (
-                  <div className="flex items-center gap-1">
-                    <Calendar className="h-4 w-4" />
-                    Due: {new Date(task.dueDate).toLocaleDateString()}
-                  </div>
+                  <>
+                    <span className="text-white/20">•</span>
+                    <div className="flex items-center gap-1">
+                      <Calendar className="h-4 w-4" />
+                      <span>Due: {new Date(task.dueDate).toLocaleDateString()}</span>
+                    </div>
+                  </>
                 )}
               </div>
-              <span>Created: {new Date(task.createdAt).toLocaleDateString()}</span>
+              <span className="text-xs">Created: {new Date(task.createdAt).toLocaleDateString()}</span>
             </div>
             {task.submissions?.length > 0 && (
               <div className="mt-4 pt-4 border-t border-white/10">
