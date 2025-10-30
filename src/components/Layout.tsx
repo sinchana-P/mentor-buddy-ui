@@ -3,12 +3,13 @@ import { cn } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useAuth } from '@/hooks/useAuth';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { 
-  LayoutDashboard, 
-  Users, 
-  UserCheck, 
-  ClipboardList, 
+import {
+  LayoutDashboard,
+  Users,
+  UserCheck,
+  ClipboardList,
   BookOpen,
+  UserCircle,
   Settings,
   LogOut,
   X
@@ -47,6 +48,12 @@ export default function Layout({ children }: LayoutProps) {
     if (href === '/dashboard') {
       return location === '/' || location === '/dashboard';
     }
+
+    // Special case for Buddies and Mentors list pages - don't match detail pages
+    if (href === '/buddies' || href === '/mentors') {
+      return location === href;
+    }
+
     return location === href || location.startsWith(href + '/');
   };
 
@@ -80,32 +87,64 @@ export default function Layout({ children }: LayoutProps) {
       {/* Navigation */}
       <ScrollArea className="flex-1 px-3">
         <div className="space-y-1 py-4">
-          {navigation.map((item) => {
+          {navigation.map((item, index) => {
             const Icon = item.icon;
             const active = isActive(item.href);
             return (
-              <Link key={item.href} href={item.href}>
-                <button
-                  className={cn(
-                    "w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 text-left font-medium",
-                    active 
-                      ? "bg-card text-foreground border border-border shadow-sm" 
-                      : "hover:bg-card/50 text-muted-foreground hover:text-foreground"
-                  )}
-                  onClick={() => isMobile && setSidebarOpen(false)}
-                >
-                  <Icon className={cn(
-                    "h-5 w-5 transition-colors",
-                    active ? "text-foreground" : "text-muted-foreground"
-                  )} />
-                  <span className={cn(
-                    "font-medium",
-                    active ? "text-foreground" : "text-muted-foreground"
-                  )}>
-                    {item.name}
-                  </span>
-                </button>
-              </Link>
+              <div key={item.href}>
+                <Link href={item.href}>
+                  <button
+                    className={cn(
+                      "w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 text-left font-medium",
+                      active
+                        ? "bg-card text-foreground border border-border shadow-sm"
+                        : "hover:bg-card/50 text-muted-foreground hover:text-foreground"
+                    )}
+                    onClick={() => isMobile && setSidebarOpen(false)}
+                  >
+                    <Icon className={cn(
+                      "h-5 w-5 transition-colors",
+                      active ? "text-foreground" : "text-muted-foreground"
+                    )} />
+                    <span className={cn(
+                      "font-medium",
+                      active ? "text-foreground" : "text-muted-foreground"
+                    )}>
+                      {item.name}
+                    </span>
+                  </button>
+                </Link>
+
+                {/* My Profile link - only for mentors and buddies - show after Dashboard */}
+                {index === 0 && user?.role && ['mentor', 'buddy'].includes(user.role) && user.profileId && (
+                  <Link href={user.role === 'mentor' ? `/mentors/${user.profileId}` : `/buddies/${user.profileId}`}>
+                    <button
+                      className={cn(
+                        "w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 text-left font-medium mt-1",
+                        isActive(user.role === 'mentor' ? `/mentors/${user.profileId}` : `/buddies/${user.profileId}`)
+                          ? "bg-card text-foreground border border-border shadow-sm"
+                          : "hover:bg-card/50 text-muted-foreground hover:text-foreground"
+                      )}
+                      onClick={() => isMobile && setSidebarOpen(false)}
+                    >
+                      <UserCircle className={cn(
+                        "h-5 w-5 transition-colors",
+                        isActive(user.role === 'mentor' ? `/mentors/${user.profileId}` : `/buddies/${user.profileId}`)
+                          ? "text-foreground"
+                          : "text-muted-foreground"
+                      )} />
+                      <span className={cn(
+                        "font-medium",
+                        isActive(user.role === 'mentor' ? `/mentors/${user.profileId}` : `/buddies/${user.profileId}`)
+                          ? "text-foreground"
+                          : "text-muted-foreground"
+                      )}>
+                        My Profile
+                      </span>
+                    </button>
+                  </Link>
+                )}
+              </div>
             );
           })}
         </div>

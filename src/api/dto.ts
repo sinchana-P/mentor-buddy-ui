@@ -13,6 +13,8 @@ export interface UserRO {
   email: string;
   role: 'manager' | 'mentor' | 'buddy';
   domainRole: 'frontend' | 'backend' | 'fullstack' | 'devops' | 'qa' | 'hr';
+  permissions?: string[];
+  profileId?: string; // mentor ID or buddy ID for profile access
   avatarUrl?: string | null;
   isActive: boolean;
   lastLoginAt?: string | null;
@@ -95,6 +97,15 @@ export interface BuddyRO {
   domainRole: string;
   mentorId?: string;
   mentorName?: string;
+  mentor?: {
+    id: string;
+    user?: {
+      id: string;
+      name: string;
+      email: string;
+      domainRole: string;
+    };
+  };
   joinDate: string;
   status: string;
   progress: number;
@@ -103,6 +114,8 @@ export interface BuddyRO {
   createdAt: string;
   updatedAt: string;
   user?: UserRO;
+  userId?: string;
+  assignedMentorId?: string;
   avatarUrl?: string;
 }
 

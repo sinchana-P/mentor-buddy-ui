@@ -35,12 +35,15 @@ import { useGetTopicsQuery } from '@/api/topicsApi';
 // Import EditBuddyModal
 import EditBuddyModal from '@/components/EditBuddyModal';
 import type { BuddyRO } from '@/api/dto';
+import { usePermissions } from '@/hooks/usePermissions';
+import { PERMISSIONS } from '@/utils/permissions';
 
 
 // Use the shared Buddy type from ../types
 const buddyFormSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters'),
   email: z.string().email('Please enter a valid email'),
+  password: z.string().min(8, 'Password must be at least 8 characters'),
   domainRole: z.enum(['frontend', 'backend', 'devops', 'qa', 'hr']),
   assignedMentorId: z.string().min(1, 'Please select a mentor')
 });
@@ -66,6 +69,9 @@ export default function BuddiesPage() {
   const [buddyToDelete, setBuddyToDelete] = useState<BuddyRO | null>(null);
   const [selectedTopicIds, setSelectedTopicIds] = useState<string[]>([]);
   const { toast } = useToast();
+
+  // Get permissions
+  const { hasPermission, canCreateBuddy, canDeleteBuddy, role, userId } = usePermissions();
 
   // ✅ RTK Query hooks for API operations (following your exact reference pattern)
   const { 
@@ -122,7 +128,7 @@ export default function BuddiesPage() {
         name: data.name,
         email: data.email,
         domainRole: data.domainRole,
-        password: 'defaultPassword123', // In real app, generate or let user set
+        password: data.password,
         assignedMentorId: data.assignedMentorId, // Pass assigned mentor ID
         topicIds: selectedTopicIds // Pass selected topic IDs
       }).unwrap();
@@ -170,9 +176,43 @@ export default function BuddiesPage() {
     }
   };
 
+  // Check if user can edit a specific buddy
+  const canEditBuddy = (buddy: BuddyRO) => {
+    // Manager can edit all buddies
+    if (hasPermission(PERMISSIONS.CAN_EDIT_BUDDY_ALL)) return true;
+
+    // Mentor can only edit buddies assigned to them (and only domain role field)
+    if (role === 'mentor' && hasPermission(PERMISSIONS.CAN_EDIT_BUDDY_ROLE)) {
+      // Check if this buddy is assigned to the current mentor
+      // We need to match mentor's userId with buddy's assignedMentor's userId
+      return buddy.mentorId === userId || buddy.mentor?.userId === userId;
+    }
+
+    // Buddy can only edit their own profile (only name field)
+    if (role === 'buddy' && hasPermission(PERMISSIONS.CAN_EDIT_BUDDY_NAME)) {
+      return buddy.userId === userId || buddy.user?.id === userId;
+    }
+
+    return false;
+  };
+
+  // Check if user can delete a specific buddy
+  const canDeleteSpecificBuddy = (buddy: BuddyRO) => {
+    // Only managers can delete buddies
+    return canDeleteBuddy;
+  };
+
   const openEditModal = (buddy: BuddyRO, e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
+    if (!canEditBuddy(buddy)) {
+      toast({
+        title: 'Permission Denied',
+        description: 'You do not have permission to edit this buddy',
+        variant: 'destructive'
+      });
+      return;
+    }
     setSelectedBuddy(buddy);
     setIsEditModalOpen(true);
   };
@@ -180,6 +220,14 @@ export default function BuddiesPage() {
   const openDeleteDialog = (buddy: BuddyRO, e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
+    if (!canDeleteSpecificBuddy(buddy)) {
+      toast({
+        title: 'Permission Denied',
+        description: 'You do not have permission to delete this buddy',
+        variant: 'destructive'
+      });
+      return;
+    }
     setBuddyToDelete(buddy);
     setIsDeleteDialogOpen(true);
   };
@@ -304,18 +352,22 @@ export default function BuddiesPage() {
 
               <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
                 <DialogTrigger asChild>
-                  <button className="btn-gradient hover-lift flex items-center gap-2">
+                  <button
+                    className={`btn-gradient hover-lift flex items-center gap-2 ${!canCreateBuddy ? 'opacity-50 cursor-not-allowed' : ''}`}
+                    disabled={!canCreateBuddy}
+                    title={!canCreateBuddy ? 'You do not have permission to create buddies' : 'Add new buddy'}
+                  >
                     <UserPlus className="h-4 w-4" />
                     Add Buddy
                   </button>
                 </DialogTrigger>
               
-              <DialogContent className="sm:max-w-[500px]">
+              <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
                   <DialogTitle>Add New Buddy</DialogTitle>
                   <DialogDescription>Create a new buddy profile for mentorship tracking.</DialogDescription>
                 </DialogHeader>
-                
+
                 <Form {...buddyForm}>
                   <form onSubmit={buddyForm.handleSubmit(handleCreateBuddy)} className="space-y-4">
                     <FormField
@@ -345,7 +397,21 @@ export default function BuddiesPage() {
                         </FormItem>
                       )}
                     />
-                    
+
+                    <FormField
+                      control={buddyForm.control}
+                      name="password"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="form-label">Password</FormLabel>
+                          <FormControl>
+                            <Input type="password" placeholder="Enter password (min 8 characters)" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
                     <FormField
                       control={buddyForm.control}
                       name="domainRole"
@@ -514,16 +580,26 @@ export default function BuddiesPage() {
                   {/* Action buttons - Top right, appear on hover */}
                   <div className="absolute top-3 right-3 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10">
                     <button
-                      className="p-1.5 rounded-md bg-white/10 hover:bg-white/20 transition-colors text-white/60 hover:text-white"
+                      className={`p-1.5 rounded-md transition-colors ${
+                        canEditBuddy(buddy)
+                          ? 'bg-white/10 hover:bg-white/20 text-white/60 hover:text-white cursor-pointer'
+                          : 'bg-white/5 text-white/30 cursor-not-allowed opacity-50'
+                      }`}
                       onClick={(e) => openEditModal(buddy, e)}
-                      title="Edit buddy"
+                      disabled={!canEditBuddy(buddy)}
+                      title={canEditBuddy(buddy) ? 'Edit buddy' : 'You cannot edit this buddy'}
                     >
                       <Edit className="h-3.5 w-3.5" />
                     </button>
                     <button
-                      className="p-1.5 rounded-md bg-white/5 hover:bg-red-500/20 transition-colors text-white/60 hover:text-red-300"
+                      className={`p-1.5 rounded-md transition-colors ${
+                        canDeleteSpecificBuddy(buddy)
+                          ? 'bg-white/5 hover:bg-red-500/20 text-white/60 hover:text-red-300 cursor-pointer'
+                          : 'bg-white/5 text-white/30 cursor-not-allowed opacity-50'
+                      }`}
                       onClick={(e) => openDeleteDialog(buddy, e)}
-                      title="Delete buddy"
+                      disabled={!canDeleteSpecificBuddy(buddy)}
+                      title={canDeleteSpecificBuddy(buddy) ? 'Delete buddy' : 'You cannot delete this buddy'}
                     >
                       <Trash2 className="h-3.5 w-3.5" />
                     </button>
@@ -575,8 +651,8 @@ export default function BuddiesPage() {
 
                       <div className="flex items-center justify-between">
                         <span className="text-white/70 text-xs">Mentor:</span>
-                        <span className="font-medium text-white text-xs truncate max-w-20" title={buddy.mentorName || 'Not assigned'}>
-                          {buddy.mentorName || 'Not assigned'}
+                        <span className="font-medium text-white text-xs truncate max-w-20" title={buddy.mentor?.user?.name || buddy.mentorName || 'Not assigned'}>
+                          {buddy.mentor?.user?.name || buddy.mentorName || 'Not assigned'}
                         </span>
                       </div>
 

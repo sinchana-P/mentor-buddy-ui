@@ -10,6 +10,7 @@ export interface UserRO {
   name: string;
   role: 'manager' | 'mentor' | 'buddy';
   domainRole: 'frontend' | 'backend' | 'fullstack' | 'devops' | 'qa' | 'hr';
+  profileId?: string; // mentor ID or buddy ID for profile access
   avatarUrl?: string | null;
   isActive: boolean;
   lastLoginAt?: string | null;

@@ -15,10 +15,12 @@ import { useSelector } from 'react-redux';
 import type { RootState } from '@/store';
 // RTK Query hooks following your reference pattern
 import { useGetMentorsQuery, useCreateMentorMutation } from '@/api/mentorsApi';
+import { usePermissions } from '@/hooks/usePermissions';
 
 const mentorFormSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters'),
   email: z.string().email('Please enter a valid email'),
+  password: z.string().min(8, 'Password must be at least 8 characters'),
   domainRole: z.enum(['frontend', 'backend', 'devops', 'qa', 'hr']),
   expertise: z.string().min(10, 'Please describe expertise (minimum 10 characters)'),
   experience: z.string().min(10, 'Please describe experience (minimum 10 characters)'),
@@ -32,6 +34,9 @@ export default function MentorsPage() {
   });
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const { toast } = useToast();
+
+  // Get permissions
+  const { canCreateMentor, canEditMentor, canDeleteMentor } = usePermissions();
 
   // Following your reference pattern: useSelector to read from store (commented out unused vars)
   // const mentorsFromStore = useSelector((state: RootState) => state.mentors.mentors);
@@ -87,10 +92,7 @@ export default function MentorsPage() {
       console.log('Creating mentor with data:', data);
       
       // Following your reference pattern: await createTrigger(payload).unwrap()
-      const response = await createMentorTrigger({
-        ...data,
-        password: 'defaultPassword123' // In real app, generate or let user set
-      }).unwrap();
+      const response = await createMentorTrigger(data).unwrap();
       
       console.log('Mentor created successfully:', response);
       setIsCreateDialogOpen(false);
@@ -188,12 +190,16 @@ export default function MentorsPage() {
             
             <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
               <DialogTrigger asChild>
-                <button className="btn-gradient hover-lift flex items-center gap-2">
+                <button
+                  className={`btn-gradient hover-lift flex items-center gap-2 ${!canCreateMentor ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  disabled={!canCreateMentor}
+                  title={!canCreateMentor ? 'You do not have permission to create mentors' : 'Add new mentor'}
+                >
                   <Plus className="w-4 h-4" />
                   Add Mentor
                 </button>
               </DialogTrigger>
-              <DialogContent className="sm:max-w-[500px] bg-card border border-white/10 p-6 rounded-xl">
+              <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto bg-card border border-white/10 p-6 rounded-xl">
               <DialogHeader>
                 <div className="flex items-center gap-3 mb-4">
                   <div className="w-8 h-8 gradient-primary rounded-lg flex items-center justify-center">
@@ -225,6 +231,19 @@ export default function MentorsPage() {
                         <FormLabel className="form-label">Email</FormLabel>
                         <FormControl>
                           <Input type="email" placeholder="Enter email address" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={mentorForm.control}
+                    name="password"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="form-label">Password</FormLabel>
+                        <FormControl>
+                          <Input type="password" placeholder="Enter password (min 8 characters)" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -389,7 +408,11 @@ export default function MentorsPage() {
                 }}
                 className="hover-lift h-full" // Added h-full for consistent height
               >
-                <MentorCard mentor={mentor} />
+                <MentorCard
+                  mentor={mentor}
+                  canEdit={canEditMentor}
+                  canDelete={canDeleteMentor}
+                />
               </motion.div>
             )) : (
               <div className="col-span-full">

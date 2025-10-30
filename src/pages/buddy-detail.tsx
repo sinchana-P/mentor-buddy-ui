@@ -34,6 +34,8 @@ import type { RootState } from '@/store';
 import EditBuddyModal from '@/components/EditBuddyModal';
 import PortfolioFormDialog from '@/components/PortfolioFormDialog';
 import PortfolioCard from '@/components/PortfolioCard';
+import { usePermissions } from '@/hooks/usePermissions';
+import { PERMISSIONS } from '@/utils/permissions';
 
 const taskSchema = z.object({
   title: z.string().min(1, 'Title is required'),
@@ -70,15 +72,24 @@ export default function BuddyDetailPage() {
   const [deletingPortfolioId, setDeletingPortfolioId] = useState<string | null>(null);
   const { toast } = useToast();
 
-  // Get current user from Redux to check roles
+  // Get current user from Redux and permissions
   const currentUser = useSelector((state: RootState) => state.auth.user);
-  const isMentor = currentUser?.role === 'mentor' || currentUser?.role === 'manager';
-  const canEditProgress = isMentor; // Mentors and Managers can edit
+  const {
+    canUpdateBuddyProgress,
+    canEditTask,
+    canUpdateTaskStatus,
+    canManageOwnPortfolio,
+    userId,
+    role,
+    hasPermission,
+    isMentor,
+    isManager,
+    isBuddy
+  } = usePermissions();
 
   console.log('[BuddyDetail] Current user:', currentUser);
   console.log('[BuddyDetail] User role:', currentUser?.role);
-  console.log('[BuddyDetail] isMentor:', isMentor);
-  console.log('[BuddyDetail] canEditProgress:', canEditProgress);
+  console.log('[BuddyDetail] User ID:', userId);
 
   // Fetch buddy data
   const { data: buddies = [], isLoading } = useGetBuddiesQuery({});
@@ -138,14 +149,26 @@ export default function BuddyDetailPage() {
   const [updatePortfolio, { isLoading: isUpdatingPortfolio }] = useUpdatePortfolioMutation();
   const [deletePortfolio, { isLoading: isDeletingPortfolio }] = useDeletePortfolioMutation();
 
-  // ✅ Handle Progress Update (Mentor-only) - Using new buddy topics system
-  const handleProgressUpdate = async (topicId: string, checked: boolean) => {
-    console.log('[BuddyDetail] handleProgressUpdate called:', { topicId, checked, canEditProgress });
+  // Check if current user can update this buddy's progress
+  const buddyUserId = buddy?.user?.id || buddy?.userId || '';
+  const assignedMentorUserId = buddy?.mentor?.userId;
+  const canUpdateProgress = canUpdateBuddyProgress(buddyUserId, assignedMentorUserId);
+  const isOwnProfile = buddyUserId === userId;
 
-    if (!canEditProgress) {
+  // ✅ Handle Progress Update - Using new buddy topics system with proper permissions
+  const handleProgressUpdate = async (topicId: string, checked: boolean) => {
+    console.log('[BuddyDetail] handleProgressUpdate called:', { topicId, checked, canUpdateProgress });
+
+    if (!canUpdateProgress) {
+      const message = role === 'mentor'
+        ? 'You can only update progress for buddies assigned to you'
+        : role === 'buddy'
+        ? 'You can only update your own progress'
+        : 'You do not have permission to update progress';
+
       toast({
         title: 'Permission Denied',
-        description: 'Only mentors and managers can update progress',
+        description: message,
         variant: 'destructive'
       });
       return;
@@ -479,7 +502,7 @@ export default function BuddyDetailPage() {
                   <div>Current User: {currentUser?.name || 'null'}</div>
                   <div>User Role: {currentUser?.role || 'null'}</div>
                   <div>Is Mentor: {isMentor ? 'true' : 'false'}</div>
-                  <div>Can Edit Progress: {canEditProgress ? 'true' : 'false'}</div>
+                  <div>Can Update Progress: {canUpdateProgress ? 'true' : 'false'}</div>
                   <div>Is Updating: {isUpdatingProgress ? 'true' : 'false'}</div>
                   <div className="font-bold mt-3 mb-2">LocalStorage:</div>
                   <div>Token exists: {localStorage.getItem('auth_token') ? 'Yes' : 'No'}</div>
@@ -506,8 +529,15 @@ export default function BuddyDetailPage() {
                 <CardTitle>Technical Progress</CardTitle>
                 <p className="text-sm text-gray-600 dark:text-gray-400">
                   Track learning milestones and skill development
-                  {!canEditProgress && <span className="ml-2 text-yellow-600">(Read-only - Only mentors/managers can update)</span>}
-                  {canEditProgress && <span className="ml-2 text-green-600">(You can update - Click checkboxes to mark complete)</span>}
+                  {!canUpdateProgress && (
+                    <span className="ml-2 text-yellow-600">
+                      (Read-only -{' '}
+                      {role === 'mentor' ? 'You can only update progress for your assigned buddies' : 'Only managers and assigned mentors can update'})
+                    </span>
+                  )}
+                  {canUpdateProgress && (
+                    <span className="ml-2 text-green-600">(You can update - Click checkboxes to mark complete)</span>
+                  )}
                 </p>
               </CardHeader>
               <CardContent>
@@ -537,14 +567,15 @@ export default function BuddyDetailPage() {
                                 console.log('[Checkbox] onCheckedChange triggered:', {
                                   id: topicProgress.id,
                                   checked,
-                                  canEditProgress,
+                                  canUpdateProgress,
                                   currentUserRole: currentUser?.role,
-                                  isMentor
+                                  role
                                 });
                                 handleProgressUpdate(topicProgress.id, checked as boolean);
                               }}
-                              disabled={!canEditProgress || isUpdatingProgress}
-                              className={canEditProgress ? 'cursor-pointer' : 'cursor-not-allowed'}
+                              disabled={!canUpdateProgress || isUpdatingProgress}
+                              className={canUpdateProgress ? 'cursor-pointer' : 'cursor-not-allowed'}
+                              title={!canUpdateProgress ? 'You do not have permission to update this buddy\'s progress' : 'Click to mark as complete'}
                             />
                             <div className="flex-1">
                               <span className={`block ${topicProgress.checked ? 'line-through text-gray-500' : 'font-medium'}`}>
@@ -579,10 +610,17 @@ export default function BuddyDetailPage() {
           <TabsContent value="portfolio" className="space-y-4">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-lg font-semibold">Portfolio Projects</h3>
-              <Button onClick={() => openPortfolioModal()} size="sm">
-                <Plus className="h-4 w-4 mr-2" />
-                Add Project
-              </Button>
+              {isOwnProfile && canManageOwnPortfolio('create') ? (
+                <Button onClick={() => openPortfolioModal()} size="sm">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Project
+                </Button>
+              ) : (
+                <Button disabled size="sm" title="You can only manage your own portfolio">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Project
+                </Button>
+              )}
             </div>
 
             {isLoadingPortfolio ? (
@@ -596,7 +634,8 @@ export default function BuddyDetailPage() {
                     <PortfolioCard
                       key={project.id}
                       portfolio={project}
-                      canEdit={true}
+                      canEdit={isOwnProfile && canManageOwnPortfolio('edit')}
+                      canDelete={isOwnProfile && canManageOwnPortfolio('delete')}
                       onEdit={() => openPortfolioModal(project)}
                       onDelete={() => setDeletingPortfolioId(project.id)}
                     />
@@ -606,12 +645,16 @@ export default function BuddyDetailPage() {
                     <GitBranch className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                     <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">No projects yet</h3>
                     <p className="text-gray-600 dark:text-gray-400 mb-4">
-                      Start building your portfolio by adding your first project
+                      {isOwnProfile
+                        ? 'Start building your portfolio by adding your first project'
+                        : 'This buddy hasn\'t added any projects yet'}
                     </p>
-                    <Button onClick={() => openPortfolioModal()} variant="outline">
-                      <Plus className="h-4 w-4 mr-2" />
-                      Add Your First Project
-                    </Button>
+                    {isOwnProfile && canManageOwnPortfolio('create') && (
+                      <Button onClick={() => openPortfolioModal()} variant="outline">
+                        <Plus className="h-4 w-4 mr-2" />
+                        Add Your First Project
+                      </Button>
+                    )}
                   </div>
                 )}
               </div>
@@ -624,7 +667,7 @@ export default function BuddyDetailPage() {
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <CardTitle>Buddy Information</CardTitle>
-                  {isMentor && (
+                  {(isManager || isMentor || (isBuddy && (buddy.userId === userId || buddy.user?.id === userId))) && (
                     <Button onClick={() => setIsEditModalOpen(true)} variant="outline" size="sm">
                       <Edit className="h-4 w-4 mr-2" />
                       Edit Profile
@@ -645,7 +688,7 @@ export default function BuddyDetailPage() {
 
                 <div>
                   <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Domain Role</label>
-                  <Input value={buddy.domainRole || ''} readOnly />
+                  <Input value={buddy.user?.domainRole || buddy.domainRole || ''} readOnly />
                 </div>
 
                 <div>
@@ -655,7 +698,7 @@ export default function BuddyDetailPage() {
 
                 <div>
                   <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Assigned Mentor</label>
-                  <Input value={buddy?.mentorName || 'Not assigned'} readOnly />
+                  <Input value={buddy.mentor?.user?.name || buddy.mentorName || 'Not assigned'} readOnly />
                 </div>
 
                 <div>

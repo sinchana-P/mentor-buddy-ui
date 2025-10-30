@@ -32,10 +32,10 @@ export function useAuth() {
   
   // Sync current user data with Redux state
   useEffect(() => {
-    if (currentUser && currentUser.id !== user?.id) {
+    if (currentUser) {
       dispatch(setUser(currentUser));
     }
-  }, [currentUser, user?.id, dispatch]);
+  }, [currentUser, dispatch]);
   
   const signIn = useCallback(async (email: string, password: string) => {
     try {
