@@ -9,6 +9,7 @@ import AuthPage from "@/pages/auth";
 import RoleSelectionPage from "@/pages/role-selection";
 import DashboardPage from "@/pages/dashboard";
 import MentorsPage from "@/pages/mentors";
+import ManagersPage from "@/pages/managers";
 import MentorProfilePage from "@/pages/mentor-profile";
 import BuddyTimelinePage from "@/pages/buddy-timeline";
 import BuddiesPage from "@/pages/buddies";
@@ -67,6 +68,21 @@ function Router() {
           </ProtectedRoute>
         )} />
         
+        <Route path="/managers" component={() => (
+          <ProtectedRoute>
+            <Layout>
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                transition={{ duration: 0.3 }}
+              >
+                <ManagersPage />
+              </motion.div>
+            </Layout>
+          </ProtectedRoute>
+        )} />
+
         <Route path="/mentors" component={() => (
           <ProtectedRoute>
             <Layout>
@@ -81,7 +97,7 @@ function Router() {
             </Layout>
           </ProtectedRoute>
         )} />
-        
+
         <Route path="/buddies" component={() => (
           <ProtectedRoute>
             <Layout>

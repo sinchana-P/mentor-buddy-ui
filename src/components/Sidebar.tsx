@@ -5,23 +5,34 @@ import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { 
-  LayoutDashboard, 
-  Presentation, 
-  GraduationCap, 
-  CheckSquare, 
-  BarChart3, 
+import {
+  LayoutDashboard,
+  Presentation,
+  GraduationCap,
+  CheckSquare,
+  BarChart3,
   X,
   LogOut,
   BookOpen,
   Settings,
   Sparkles,
-  Crown
+  Crown,
+  Shield
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-const navigation = [
+// Base navigation items (visible to all users)
+const baseNavigation = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
+];
+
+// Manager-only navigation items
+const managerNavigation = [
+  { name: 'Managers', href: '/managers', icon: Shield },
+];
+
+// Common navigation items
+const commonNavigation = [
   { name: 'Mentors', href: '/mentors', icon: Presentation },
   { name: 'Buddies', href: '/buddies', icon: GraduationCap },
   { name: 'Tasks', href: '/tasks', icon: CheckSquare },
@@ -93,7 +104,12 @@ export default function Sidebar() {
         {/* Premium Navigation */}
         <nav className="mt-6 px-3">
           <div className="space-y-2">
-            {navigation.map((item, index) => {
+            {/* Build navigation based on user role */}
+            {[
+              ...baseNavigation,
+              ...(user?.role === 'manager' ? managerNavigation : []),
+              ...commonNavigation,
+            ].map((item, index) => {
               const Icon = item.icon;
               const isActive = location === item.href || (item.href !== '/dashboard' && location.startsWith(item.href));
               
