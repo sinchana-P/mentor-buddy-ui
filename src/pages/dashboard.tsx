@@ -80,7 +80,8 @@ export default function DashboardPage() {
   ];
 
   return (
-    <div className="min-h-screen p-6 space-y-8 page-container">
+    <div className="min-h-screen w-full max-w-full overflow-x-hidden">
+      <div className="content-responsive py-4 sm:py-6 space-y-6 sm:space-y-8">
       {/* Hero Section with Premium Welcome */}
       <motion.div
         initial={{ opacity: 0, y: 30 }}
@@ -91,16 +92,16 @@ export default function DashboardPage() {
         <div className="premium-card mb-8">
           <div className="flex items-center justify-between">
             <div className="space-y-2">
-              <motion.h1 
-                className="text-4xl font-bold text-foreground"
+              <motion.h1
+                className="text-2xl sm:text-3xl lg:text-4xl font-bold text-foreground"
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.2, duration: 0.6 }}
               >
                 Welcome back, {user?.name || 'Manager 2'}
               </motion.h1>
-              <motion.p 
-                className="text-muted-foreground text-lg"
+              <motion.p
+                className="text-muted-foreground text-sm sm:text-base lg:text-lg"
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.4, duration: 0.6 }}
@@ -117,7 +118,7 @@ export default function DashboardPage() {
         </div>
 
         {/* Premium Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 sm:gap-6 mb-6 sm:mb-8 w-full">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -218,10 +219,10 @@ export default function DashboardPage() {
             <div className="w-8 h-8 bg-card rounded-lg flex items-center justify-center ring-1 ring-border">
               <Zap className="w-4 h-4 text-foreground" />
             </div>
-            <h2 className="text-2xl font-bold text-foreground">Platform Management</h2>
+            <h2 className="text-xl sm:text-2xl font-bold text-foreground">Platform Management</h2>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6 w-full">
             {roleCards.map((role, index) => {
               const Icon = role.icon;
               return (
@@ -265,7 +266,7 @@ export default function DashboardPage() {
         </motion.div>
 
         {/* Premium Activity & Actions Section */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 sm:gap-6 w-full">
           {/* Recent Activities with Premium Design */}
           <motion.div
             initial={{ opacity: 0, x: -20 }}
@@ -352,6 +353,7 @@ export default function DashboardPage() {
           </motion.div>
         </div>
       </motion.div>
+      </div>
     </div>
   );
 }

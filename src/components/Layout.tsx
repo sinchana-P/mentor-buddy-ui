@@ -219,29 +219,29 @@ export default function Layout({ children }: LayoutProps) {
   };
 
   return (
-    <div className="flex h-dvh page-container">
+    <div className="flex h-dvh page-container overflow-hidden">
       {/* Mobile sidebar overlay */}
       {isMobile && sidebarOpen && (
-        <div 
-          className="fixed inset-0 z-50 bg-black/50 lg:hidden" 
+        <div
+          className="fixed inset-0 z-50 bg-black/50 xl:hidden"
           onClick={() => setSidebarOpen(false)}
         />
       )}
 
       {/* Sidebar */}
       <aside className={cn(
-        "fixed inset-y-0 left-0 z-50 w-64 transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:inset-0",
+        "fixed inset-y-0 left-0 z-50 w-64 transition-transform duration-300 ease-in-out xl:translate-x-0 xl:static xl:inset-0 flex-shrink-0",
         isMobile && !sidebarOpen && "-translate-x-full"
       )}>
         <Sidebar />
       </aside>
 
       {/* Main content */}
-      <div className="flex-1 flex flex-col min-w-0 bg-background">
+      <div className="flex-1 flex flex-col min-w-0 max-w-full overflow-hidden bg-background">
         {/* Top bar for all screens */}
-        <TopBar />
+        <TopBar onMenuClick={() => setSidebarOpen(!sidebarOpen)} />
         {/* Page content */}
-        <main className="flex-1 overflow-auto bg-background">
+        <main className="flex-1 overflow-x-hidden overflow-y-auto bg-background w-full">
           {children}
         </main>
       </div>

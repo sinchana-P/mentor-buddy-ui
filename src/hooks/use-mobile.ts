@@ -5,12 +5,13 @@ export function useIsMobile() {
 
   useEffect(() => {
     const checkMobile = () => {
-      setIsMobile(window.innerWidth < 768);
+      // Changed from 768px to 1280px (xl breakpoint) to match sidebar behavior
+      setIsMobile(window.innerWidth < 1280);
     };
 
     checkMobile();
     window.addEventListener('resize', checkMobile);
-    
+
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 

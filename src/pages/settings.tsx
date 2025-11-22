@@ -19,7 +19,6 @@ import { useToast } from "@/hooks/use-toast";
 import { useTheme } from "@/contexts/ThemeContext";
 import {
   useChangePasswordMutation,
-  useDeleteAccountMutation,
   useLazyExportUserDataQuery,
   useUpdateProfileMutation,
 } from "@/api/apiSlice";
@@ -50,8 +49,8 @@ export default function Settings() {
   // API mutations
   const [changePassword, { isLoading: isChangingPassword }] =
     useChangePasswordMutation();
-  const [deleteAccount, { isLoading: isDeletingAccount }] =
-    useDeleteAccountMutation();
+  // const [deleteAccount, { isLoading: isDeletingAccount }] =
+  //   useDeleteAccountMutation();
   const [updateProfile] = useUpdateProfileMutation();
 
   const [showPasswords, setShowPasswords] = useState({
@@ -353,35 +352,36 @@ export default function Settings() {
     }
   };
 
-  const handleDeleteAccount = async () => {
-    const confirmed = window.confirm(
-      "Are you sure you want to delete your account? This action cannot be undone."
-    );
-    if (!confirmed) return;
+  // const handleDeleteAccount = async () => {
+  //   const confirmed = window.confirm(
+  //     "Are you sure you want to delete your account? This action cannot be undone."
+  //   );
+  //   if (!confirmed) return;
 
-    try {
-      await deleteAccount().unwrap();
-      toast({
-        title: "Account Deleted",
-        description: "Your account has been scheduled for deletion.",
-      });
-    } catch (error: unknown) {
-      toast({
-        title: "Error",
-        description:
-          (error as { data?: { message?: string } })?.data?.message ||
-          "Failed to delete account. Please try again.",
-        variant: "destructive",
-      });
-    }
-  };
+  //   try {
+  //     await deleteAccount().unwrap();
+  //     toast({
+  //       title: "Account Deleted",
+  //       description: "Your account has been scheduled for deletion.",
+  //     });
+  //   } catch (error: unknown) {
+  //     toast({
+  //       title: "Error",
+  //       description:
+  //         (error as { data?: { message?: string } })?.data?.message ||
+  //         "Failed to delete account. Please try again.",
+  //       variant: "destructive",
+  //     });
+  //   }
+  // };
 
   const togglePasswordVisibility = (field: "current" | "new" | "confirm") => {
     setShowPasswords((prev) => ({ ...prev, [field]: !prev[field] }));
   };
 
   return (
-    <div className="min-h-screen p-6 page-container">
+    <div className="min-h-screen w-full max-w-full overflow-x-hidden">
+      <div className="content-responsive py-4 sm:py-6">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -986,6 +986,7 @@ export default function Settings() {
           </div>
         </motion.div>
       </motion.div>
+      </div>
     </div>
   );
 }

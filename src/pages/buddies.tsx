@@ -284,7 +284,8 @@ export default function BuddiesPage() {
   }
 
   return (
-    <div className="min-h-screen p-6">
+    <div className="min-h-screen w-full max-w-full overflow-x-hidden">
+      <div className="content-responsive py-4 sm:py-6">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -1084,6 +1085,7 @@ export default function BuddiesPage() {
           </AlertDialogContent>
         </AlertDialog>
       </motion.div>
+      </div>
     </div>
   );
 }
