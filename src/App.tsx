@@ -19,6 +19,14 @@ import AnalyticsPage from "@/pages/analytics";
 import ResourcesPage from "@/pages/resources";
 import CurriculumPage from "@/pages/curriculum";
 import CurriculumDetailsPage from "@/pages/curriculum-details";
+import CurriculumList from "@/pages/curriculum-management/CurriculumList";
+import CurriculumBuilder from "@/pages/curriculum-management/CurriculumBuilder";
+import TaskManagement from "@/pages/curriculum-management/TaskManagement";
+import BuddyDashboard from "@/pages/buddy/BuddyDashboard";
+import TaskDetail from "@/pages/buddy/TaskDetail";
+import MentorDashboard from "@/pages/mentor/MentorDashboard";
+import ReviewQueue from "@/pages/mentor/ReviewQueue";
+import SubmissionReview from "@/pages/mentor/SubmissionReview";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -223,7 +231,64 @@ function Router() {
             </Layout>
           </ProtectedRoute>
         )} />
-        
+
+        {/* Curriculum Management Routes (Manager/Mentor) */}
+        <Route path="/curriculum-management" component={() => (
+          <ProtectedRoute>
+            <CurriculumList />
+          </ProtectedRoute>
+        )} />
+
+        <Route path="/curriculum-management/create" component={() => (
+          <ProtectedRoute>
+            <CurriculumBuilder />
+          </ProtectedRoute>
+        )} />
+
+        <Route path="/curriculum-management/:id" component={() => (
+          <ProtectedRoute>
+            <CurriculumBuilder />
+          </ProtectedRoute>
+        )} />
+
+        <Route path="/curriculum-management/:curriculumId/week/:weekId/tasks" component={() => (
+          <ProtectedRoute>
+            <TaskManagement />
+          </ProtectedRoute>
+        )} />
+
+        {/* Buddy Routes */}
+        <Route path="/buddy/dashboard" component={() => (
+          <ProtectedRoute>
+            <BuddyDashboard />
+          </ProtectedRoute>
+        )} />
+
+        <Route path="/buddy/task/:assignmentId" component={() => (
+          <ProtectedRoute>
+            <TaskDetail />
+          </ProtectedRoute>
+        )} />
+
+        {/* Mentor Routes */}
+        <Route path="/mentor/dashboard" component={() => (
+          <ProtectedRoute>
+            <MentorDashboard />
+          </ProtectedRoute>
+        )} />
+
+        <Route path="/mentor/review-queue" component={() => (
+          <ProtectedRoute>
+            <ReviewQueue />
+          </ProtectedRoute>
+        )} />
+
+        <Route path="/mentor/review/:submissionId" component={() => (
+          <ProtectedRoute>
+            <SubmissionReview />
+          </ProtectedRoute>
+        )} />
+
         {/* Fallback to 404 */}
         <Route component={NotFound} />
       </Switch>

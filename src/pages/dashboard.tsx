@@ -4,10 +4,21 @@ import RecentActivities from '@/components/RecentActivities';
 import { useLocation } from 'wouter';
 import { Users, GraduationCap, BarChart3, Presentation, University, TrendingUp, Zap, Target, Award, Clock } from 'lucide-react';
 import { useGetDashboardStatsQuery, useGetDashboardActivityQuery } from '@/api/dashboardApi';
+import { useEffect } from 'react';
 
 export default function DashboardPage() {
   const { user } = useAuth();
   const [, setLocation] = useLocation();
+
+  // Redirect based on role
+  useEffect(() => {
+    if (user?.role === 'mentor') {
+      setLocation('/mentor/dashboard');
+    } else if (user?.role === 'buddy') {
+      setLocation('/buddy/dashboard');
+    }
+    // Managers stay on this page
+  }, [user?.role, setLocation]);
 
   // Use RTK Query with polling for real-time updates
   const { data: stats, isLoading: statsLoading, error: statsError } = useGetDashboardStatsQuery(undefined, {

@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { Search, UserPlus, Filter, GraduationCap, Sparkles, Users, Star, Edit, Trash2, AlertTriangle } from 'lucide-react';
+import { Search, UserPlus, Filter, GraduationCap, Sparkles, Users, Star, Edit, Trash2, AlertTriangle, LayoutGrid, Table2, Eye } from 'lucide-react';
 import { Link } from 'wouter';
 import { useToast } from '@/hooks/use-toast';
 import {
@@ -31,6 +31,7 @@ import {
   useGetMentorsQuery,
 } from '@/api';
 import { useGetTopicsQuery } from '@/api/topicsApi';
+import { useGetAllCurriculumsQuery } from '@/api/curriculumManagementApi';
 
 // Import EditBuddyModal
 import EditBuddyModal from '@/components/EditBuddyModal';
@@ -44,8 +45,9 @@ const buddyFormSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters'),
   email: z.string().email('Please enter a valid email'),
   password: z.string().min(8, 'Password must be at least 8 characters'),
-  domainRole: z.enum(['frontend', 'backend', 'devops', 'qa', 'hr']),
-  assignedMentorId: z.string().min(1, 'Please select a mentor')
+  domainRole: z.enum(['frontend', 'backend', 'fullstack', 'devops', 'qa', 'hr']),
+  assignedMentorId: z.string().optional(),
+  curriculumId: z.string().optional()
 });
 
 // Topics by domain role
@@ -62,12 +64,15 @@ export default function BuddiesPage() {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [domainFilter, setDomainFilter] = useState<string>('all');
+  const [viewMode, setViewMode] = useState<'table' | 'card'>('table'); // Default to table view
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [selectedBuddy, setSelectedBuddy] = useState<BuddyRO | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [buddyToDelete, setBuddyToDelete] = useState<BuddyRO | null>(null);
   const [selectedTopicIds, setSelectedTopicIds] = useState<string[]>([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10); // Items per page for table view
   const { toast } = useToast();
 
   // Get permissions
@@ -112,6 +117,25 @@ export default function BuddiesPage() {
     { skip: !selectedDomain }
   );
 
+  // Fetch published curriculums for the selected domain role
+  const { data: availableCurriculums = [], isLoading: loadingCurriculums } = useGetAllCurriculumsQuery(
+    { domainRole: selectedDomain, status: 'published' },
+    { skip: !selectedDomain }
+  );
+
+  // Auto-select the first published curriculum when domain changes
+  React.useEffect(() => {
+    if (availableCurriculums.length > 0 && isCreateDialogOpen) {
+      // Auto-select the first active published curriculum
+      const activeCurriculum = availableCurriculums.find(c => c.isActive) || availableCurriculums[0];
+      if (activeCurriculum) {
+        buddyForm.setValue('curriculumId', activeCurriculum.id);
+      }
+    } else if (availableCurriculums.length === 0 && isCreateDialogOpen) {
+      buddyForm.setValue('curriculumId', '');
+    }
+  }, [availableCurriculums, selectedDomain, isCreateDialogOpen]);
+
   // Auto-select all topics when domain changes or topics load
   React.useEffect(() => {
     if (availableTopics.length > 0) {
@@ -120,17 +144,23 @@ export default function BuddiesPage() {
     }
   }, [availableTopics]);
 
+  // Reset to page 1 when filters change
+  React.useEffect(() => {
+    setCurrentPage(1);
+  }, [search, statusFilter, domainFilter]);
+
   // ✅ Following your exact handleSubmit pattern
   const handleCreateBuddy = async (data: z.infer<typeof buddyFormSchema>) => {
     try {
-      // Pass selected topic IDs and assignedMentorId to backend
+      // Pass selected topic IDs, assignedMentorId, and curriculumId to backend
       await createBuddyTrigger({
         name: data.name,
         email: data.email,
         domainRole: data.domainRole,
         password: data.password,
-        assignedMentorId: data.assignedMentorId, // Pass assigned mentor ID
-        topicIds: selectedTopicIds // Pass selected topic IDs
+        assignedMentorId: data.assignedMentorId || undefined, // Pass assigned mentor ID (optional)
+        topicIds: selectedTopicIds, // Pass selected topic IDs
+        curriculumId: data.curriculumId || undefined // Pass selected curriculum ID
       }).unwrap();
 
       // RTK Query auto-updates cache, no manual dispatch needed
@@ -344,6 +374,7 @@ export default function BuddiesPage() {
                   <SelectItem value="all">All Domains</SelectItem>
                   <SelectItem value="frontend">Frontend</SelectItem>
                   <SelectItem value="backend">Backend</SelectItem>
+                  <SelectItem value="fullstack">Fullstack</SelectItem>
                   <SelectItem value="devops">DevOps</SelectItem>
                   <SelectItem value="qa">QA</SelectItem>
                   <SelectItem value="hr">HR</SelectItem>
@@ -427,6 +458,7 @@ export default function BuddiesPage() {
                             <SelectContent>
                               <SelectItem value="frontend">Frontend</SelectItem>
                               <SelectItem value="backend">Backend</SelectItem>
+                              <SelectItem value="fullstack">Fullstack</SelectItem>
                               <SelectItem value="devops">DevOps</SelectItem>
                               <SelectItem value="qa">QA</SelectItem>
                               <SelectItem value="hr">HR</SelectItem>
@@ -437,19 +469,69 @@ export default function BuddiesPage() {
                       )}
                     />
 
+                    {/* Curriculum Template Selection */}
+                    <FormField
+                      control={buddyForm.control}
+                      name="curriculumId"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="form-label">Curriculum Template</FormLabel>
+                          <Select
+                            value={field.value || ''}
+                            onValueChange={field.onChange}
+                            disabled={loadingCurriculums || availableCurriculums.length === 0}
+                          >
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder={
+                                  loadingCurriculums
+                                    ? "Loading curriculums..."
+                                    : availableCurriculums.length === 0
+                                      ? `No curriculum for ${selectedDomain}`
+                                      : "Select curriculum template"
+                                } />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              {availableCurriculums.map((curriculum) => (
+                                <SelectItem key={curriculum.id} value={curriculum.id}>
+                                  <div className="flex flex-col">
+                                    <span>{curriculum.name}</span>
+                                    <span className="text-xs text-white/50">
+                                      {curriculum.totalWeeks} weeks • v{curriculum.version}
+                                    </span>
+                                  </div>
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          {availableCurriculums.length === 0 && !loadingCurriculums && (
+                            <p className="text-xs text-yellow-400">
+                              No published curriculum available for {selectedDomain}. The buddy will be created without a curriculum.
+                            </p>
+                          )}
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
                     <FormField
                       control={buddyForm.control}
                       name="assignedMentorId"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel className="form-label">Assigned Mentor</FormLabel>
-                          <Select value={field.value} onValueChange={field.onChange}>
+                          <FormLabel className="form-label">Assigned Mentor (Optional)</FormLabel>
+                          <Select
+                            value={field.value || 'none'}
+                            onValueChange={(value) => field.onChange(value === 'none' ? undefined : value)}
+                          >
                             <FormControl>
                               <SelectTrigger>
-                                <SelectValue placeholder="Select a mentor" />
+                                <SelectValue placeholder="Select a mentor (optional)" />
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent>
+                              <SelectItem value="none">No mentor assigned</SelectItem>
                               {mentors.map((mentor: any) => (
                                 <SelectItem key={mentor.id} value={mentor.id}>
                                   {mentor.user?.name || mentor.name || 'Unknown Mentor'} - {mentor.user?.domainRole || mentor.domainRole}
@@ -541,7 +623,7 @@ export default function BuddiesPage() {
           </div>
         </motion.div>
 
-        {/* Premium Buddies Grid */}
+        {/* Premium Buddies Grid/Table */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -552,13 +634,251 @@ export default function BuddiesPage() {
               <Users className="w-4 h-4 text-white" />
             </div>
             <h2 className="text-lg font-semibold text-premium">Buddy Progress</h2>
-            <div className="ml-auto flex items-center gap-2 px-3 py-1.5 bg-white/10 rounded-lg">
-              <Star className="w-4 h-4 text-yellow-400" />
-              <span className="text-sm font-medium text-white">{buddies.length} Found</span>
+            <div className="ml-auto flex items-center gap-3">
+              <div className="flex items-center gap-2 px-3 py-1.5 bg-white/10 rounded-lg">
+                <Star className="w-4 h-4 text-yellow-400" />
+                <span className="text-sm font-medium text-white">{buddies.length} Found</span>
+              </div>
+              {/* View Toggle */}
+              <div className="flex items-center gap-1 bg-white/5 rounded-lg p-1">
+                <button
+                  onClick={() => setViewMode('table')}
+                  className={`p-2 rounded-md transition-all ${
+                    viewMode === 'table'
+                      ? 'bg-white/20 text-white'
+                      : 'text-white/50 hover:text-white/80 hover:bg-white/10'
+                  }`}
+                  title="Table View"
+                >
+                  <Table2 className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() => setViewMode('card')}
+                  className={`p-2 rounded-md transition-all ${
+                    viewMode === 'card'
+                      ? 'bg-white/20 text-white'
+                      : 'text-white/50 hover:text-white/80 hover:bg-white/10'
+                  }`}
+                  title="Card View"
+                >
+                  <LayoutGrid className="w-4 h-4" />
+                </button>
+              </div>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          {/* Table View */}
+          {viewMode === 'table' ? (
+            <div className="premium-card overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b border-white/10">
+                      <th className="text-left py-4 px-6 text-sm font-semibold text-white/70 uppercase tracking-wider">Name</th>
+                      <th className="text-left py-4 px-6 text-sm font-semibold text-white/70 uppercase tracking-wider">Progress</th>
+                      <th className="text-left py-4 px-6 text-sm font-semibold text-white/70 uppercase tracking-wider">Alerts</th>
+                      <th className="text-right py-4 px-6 text-sm font-semibold text-white/70 uppercase tracking-wider">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {(() => {
+                      // Pagination logic for table view
+                      const totalPages = Math.ceil(buddies.length / itemsPerPage);
+                      const startIndex = (currentPage - 1) * itemsPerPage;
+                      const endIndex = startIndex + itemsPerPage;
+                      const paginatedBuddies = buddies.slice(startIndex, endIndex);
+
+                      return paginatedBuddies.map((buddy, index) => (
+                      <motion.tr
+                        key={buddy.id}
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: index * 0.05 }}
+                        className="border-b border-white/5 hover:bg-white/5 transition-colors cursor-pointer"
+                        onClick={() => window.location.href = `/buddies/${buddy.id}`}
+                      >
+                        {/* Name Column */}
+                        <td className="py-4 px-6">
+                          <div className="flex items-center gap-3">
+                            <div className="relative flex-shrink-0">
+                              <Avatar className="h-10 w-10 ring-2 ring-white/10">
+                                <AvatarImage src="" />
+                                <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-500 text-white font-semibold text-sm">
+                                  {(buddy.user?.name || buddy.name)?.split(' ').map((n: string) => n[0]).join('') || '?'}
+                                </AvatarFallback>
+                              </Avatar>
+                              <div className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-background ${
+                                buddy.status === 'active' ? 'bg-green-500' :
+                                buddy.status === 'inactive' ? 'bg-yellow-500' : 'bg-red-500'
+                              }`}></div>
+                            </div>
+                            <div>
+                              <p className="font-semibold text-white">{buddy.user?.name || buddy.name || 'Unknown'}</p>
+                              <p className="text-sm text-white/60">{buddy.domainRole || 'Not assigned'}</p>
+                            </div>
+                          </div>
+                        </td>
+
+                        {/* Progress Column */}
+                        <td className="py-4 px-6">
+                          <div className="flex items-center gap-3">
+                            <div className="flex-1 max-w-xs">
+                              <div className="flex justify-between items-center mb-1">
+                                <span className="text-sm font-medium text-white">{buddy.progress || 0}%</span>
+                              </div>
+                              <div className="w-full h-2 bg-white/10 rounded-full overflow-hidden">
+                                <div
+                                  className={`h-full rounded-full transition-all duration-500 ${
+                                    (buddy.progress || 0) === 100 ? 'bg-gradient-to-r from-green-400 to-emerald-500' :
+                                    (buddy.progress || 0) >= 75 ? 'bg-gradient-to-r from-blue-400 to-blue-500' :
+                                    (buddy.progress || 0) >= 25 ? 'bg-gradient-to-r from-yellow-400 to-orange-500' :
+                                    'bg-gradient-to-r from-red-400 to-red-500'
+                                  }`}
+                                  style={{ width: `${buddy.progress || 0}%` }}
+                                ></div>
+                              </div>
+                            </div>
+                          </div>
+                        </td>
+
+                        {/* Alerts Column */}
+                        <td className="py-4 px-6">
+                          <div className="flex items-center gap-2">
+                            {(buddy.progress || 0) === 100 ? (
+                              <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-green-500/10 text-green-400">
+                                Completed
+                              </span>
+                            ) : (buddy.progress || 0) >= 50 ? (
+                              <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-blue-500/10 text-blue-400">
+                                On Track
+                              </span>
+                            ) : (buddy.progress || 0) >= 25 ? (
+                              <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-yellow-500/10 text-yellow-400">
+                                Needs Attention
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-red-500/10 text-red-400">
+                                <AlertTriangle className="w-3 h-3 mr-1" />
+                                At Risk
+                              </span>
+                            )}
+                          </div>
+                        </td>
+
+                        {/* Action Column */}
+                        <td className="py-4 px-6">
+                          <div className="flex items-center justify-end gap-2">
+                            <Link href={`/buddies/${buddy.id}`}>
+                              <button
+                                className="p-2 rounded-lg bg-white/5 hover:bg-white/10 transition-colors"
+                                title="View Details"
+                              >
+                                <Eye className="w-4 h-4 text-white/70" />
+                              </button>
+                            </Link>
+                            <button
+                              className={`p-2 rounded-lg transition-colors ${
+                                canEditBuddy(buddy)
+                                  ? 'bg-white/5 hover:bg-white/10 text-blue-400'
+                                  : 'bg-white/5 text-white/30 cursor-not-allowed'
+                              }`}
+                              onClick={(e) => openEditModal(buddy, e)}
+                              disabled={!canEditBuddy(buddy)}
+                              title={canEditBuddy(buddy) ? 'Edit buddy' : 'You cannot edit this buddy'}
+                            >
+                              <Edit className="h-4 w-4" />
+                            </button>
+                            <button
+                              className={`p-2 rounded-lg transition-colors ${
+                                canDeleteSpecificBuddy(buddy)
+                                  ? 'bg-white/5 hover:bg-red-500/20 text-red-400'
+                                  : 'bg-white/5 text-white/30 cursor-not-allowed'
+                              }`}
+                              onClick={(e) => openDeleteDialog(buddy, e)}
+                              disabled={!canDeleteSpecificBuddy(buddy)}
+                              title={canDeleteSpecificBuddy(buddy) ? 'Delete buddy' : 'You cannot delete this buddy'}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+                          </div>
+                        </td>
+                      </motion.tr>
+                    ))})()}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Pagination Controls */}
+              {buddies.length > 0 && (
+                <div className="flex items-center justify-between px-6 py-4 border-t border-white/10">
+                  <div className="flex items-center gap-4">
+                    <div className="text-sm text-white/60">
+                      Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, buddies.length)} of {buddies.length} buddies
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-white/60">Show:</span>
+                      <Select value={itemsPerPage.toString()} onValueChange={(value) => {
+                        setItemsPerPage(Number(value));
+                        setCurrentPage(1);
+                      }}>
+                        <SelectTrigger className="w-[70px] h-8 bg-white/5 border-white/10">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="5">5</SelectItem>
+                          <SelectItem value="10">10</SelectItem>
+                          <SelectItem value="25">25</SelectItem>
+                          <SelectItem value="50">50</SelectItem>
+                          <SelectItem value="100">100</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                      disabled={currentPage === 1}
+                      className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                        currentPage === 1
+                          ? 'bg-white/5 text-white/30 cursor-not-allowed'
+                          : 'bg-white/10 text-white hover:bg-white/20'
+                      }`}
+                    >
+                      Previous
+                    </button>
+                    <div className="flex items-center gap-1">
+                      {Array.from({ length: Math.ceil(buddies.length / itemsPerPage) }, (_, i) => i + 1).map((page) => (
+                        <button
+                          key={page}
+                          onClick={() => setCurrentPage(page)}
+                          className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                            currentPage === page
+                              ? 'bg-blue-600 text-white'
+                              : 'bg-white/10 text-white hover:bg-white/20'
+                          }`}
+                        >
+                          {page}
+                        </button>
+                      ))}
+                    </div>
+                    <button
+                      onClick={() => setCurrentPage(p => Math.min(Math.ceil(buddies.length / itemsPerPage), p + 1))}
+                      disabled={currentPage === Math.ceil(buddies.length / itemsPerPage)}
+                      className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                        currentPage === Math.ceil(buddies.length / itemsPerPage)
+                          ? 'bg-white/5 text-white/30 cursor-not-allowed'
+                          : 'bg-white/10 text-white hover:bg-white/20'
+                      }`}
+                    >
+                      Next
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          ) : (
+            /* Card View */
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {buddies.map((buddy, index) => (
               <motion.div
                 key={buddy.id}
@@ -686,7 +1006,8 @@ export default function BuddiesPage() {
                 </div>
               </motion.div>
             ))}
-          </div>
+            </div>
+          )}
         </motion.div>
 
         {buddies.length === 0 && (

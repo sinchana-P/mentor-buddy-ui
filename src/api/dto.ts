@@ -125,7 +125,8 @@ export interface CreateBuddyDTO {
   password?: string;
   domainRole: string;
   assignedMentorId?: string;
-  topics?: string[]; // Optional array of topic names for buddy-specific topics
+  topicIds?: string[]; // Optional array of topic IDs for buddy-specific topics
+  curriculumId?: string; // Optional curriculum ID for manual assignment
 }
 
 export interface UpdateBuddyDTO {
