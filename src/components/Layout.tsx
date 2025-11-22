@@ -97,11 +97,19 @@ export default function Layout({ children }: LayoutProps) {
         {/* User Profile Section - Top */}
         <div className="p-6 border-b border-border">
           <div className="text-center">
-            <div className="w-16 h-16 bg-card rounded-full flex items-center justify-center ring-1 ring-border mx-auto mb-4">
-              <span className="text-xl font-bold text-foreground">
-                {user?.name?.split(' ').map(n => n[0]).join('') || 'M2'}
-              </span>
-            </div>
+            {user?.avatarUrl ? (
+              <img
+                src={user.avatarUrl}
+                alt={user.name || 'User'}
+                className="w-16 h-16 rounded-full ring-1 ring-border mx-auto mb-4 object-cover"
+              />
+            ) : (
+              <div className="w-16 h-16 bg-card rounded-full flex items-center justify-center ring-1 ring-border mx-auto mb-4">
+                <span className="text-xl font-bold text-foreground">
+                  {user?.name?.split(' ').map(n => n[0]).join('') || 'M2'}
+                </span>
+              </div>
+            )}
             <h3 className="text-lg font-bold text-foreground mb-1">
               {user?.name || 'Manager 2'}
             </h3>

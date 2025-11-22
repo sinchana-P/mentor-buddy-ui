@@ -29,11 +29,19 @@ export function TopBar() {
           >
             <Bell className="w-4 h-4" />
           </Button>
-          <div className="w-8 h-8 bg-card rounded-full flex items-center justify-center ring-1 ring-border">
-            <span className="text-sm font-bold text-foreground">
-              {user?.name?.split(' ').map(n => n[0]).join('') || 'M2'}
-            </span>
-          </div>
+          {user?.avatarUrl ? (
+            <img
+              src={user.avatarUrl}
+              alt={user.name || 'User'}
+              className="w-8 h-8 rounded-full ring-1 ring-border object-cover"
+            />
+          ) : (
+            <div className="w-8 h-8 bg-card rounded-full flex items-center justify-center ring-1 ring-border">
+              <span className="text-sm font-bold text-foreground">
+                {user?.name?.split(' ').map(n => n[0]).join('') || 'M2'}
+              </span>
+            </div>
+          )}
         </div>
       </div>
     </header>
