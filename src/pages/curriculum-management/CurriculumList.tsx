@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Search, Plus, FileText, Edit, Trash2, CheckCircle, Clock, Archive } from 'lucide-react';
+import { Search, Plus, FileText, Edit, Trash2, CheckCircle, Clock, Archive, Eye } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
 
@@ -91,7 +91,7 @@ export default function CurriculumList() {
 
   return (
     <Layout>
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="w-full px-6 py-6">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
           <div>
             <h1 className="text-3xl font-bold text-foreground">Curriculum Management</h1>
@@ -232,6 +232,13 @@ export default function CurriculumList() {
                   </span>
 
                   <div className="flex gap-2 w-full">
+                    <Link href={`/curriculum-management/${curriculum.id}/view`}>
+                      <Button variant="outline" size="sm">
+                        <Eye className="h-4 w-4 mr-1" />
+                        View
+                      </Button>
+                    </Link>
+
                     <Link href={`/curriculum-management/${curriculum.id}`} className="flex-1">
                       <Button variant="outline" size="sm" className="w-full">
                         <Edit className="h-4 w-4 mr-1" />

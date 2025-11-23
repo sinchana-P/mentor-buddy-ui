@@ -4,15 +4,10 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Badge } from '@/components/ui/badge';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Plus, Search, Shield, Edit, Trash2, Eye, LayoutGrid, Table2 } from 'lucide-react';
+import { Plus, Search, Shield, Filter, Users, LayoutGrid, Table2, Edit, Trash2, Crown, Sparkles } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { useGetUsersQuery, useCreateUserMutation, useUpdateUserMutation, useDeleteUserMutation } from '@/api/usersApi';
@@ -22,19 +17,28 @@ import type { UserRO } from '@/api/dto';
 const managerFormSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters'),
   email: z.string().email('Please enter a valid email'),
-  password: z.string().min(8, 'Password must be at least 8 characters').optional(),
+  password: z.string().min(8, 'Password must be at least 8 characters'),
+  domainRole: z.enum(['frontend', 'backend', 'fullstack', 'devops', 'qa', 'hr']),
+});
+
+const editManagerFormSchema = z.object({
+  name: z.string().min(2, 'Name must be at least 2 characters'),
+  email: z.string().email('Please enter a valid email'),
   domainRole: z.enum(['frontend', 'backend', 'fullstack', 'devops', 'qa', 'hr']),
 });
 
 type ManagerFormData = z.infer<typeof managerFormSchema>;
+type EditManagerFormData = z.infer<typeof editManagerFormSchema>;
 
 export default function ManagersPage() {
-  const [filters, setFilters] = useState({ search: '' });
+  const [filters, setFilters] = useState({ search: '', domain: 'all' });
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [selectedManager, setSelectedManager] = useState<UserRO | null>(null);
   const [viewMode, setViewMode] = useState<'table' | 'card'>('table');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
   const { toast } = useToast();
   const { user } = useAuth();
   const [, setLocation] = useLocation();
@@ -60,12 +64,18 @@ export default function ManagersPage() {
   // Filter to only show managers
   const managers = allUsers.filter((u) => u.role === 'manager');
 
+  // Apply domain filter
+  const filteredManagers = filters.domain === 'all'
+    ? managers
+    : managers.filter(m => m.domainRole === filters.domain);
+
   const [createUserTrigger] = useCreateUserMutation();
   const [updateUserTrigger] = useUpdateUserMutation();
   const [deleteUserTrigger] = useDeleteUserMutation();
 
   const createForm = useForm<ManagerFormData>({
     resolver: zodResolver(managerFormSchema),
+    mode: 'onChange',
     defaultValues: {
       name: '',
       email: '',
@@ -74,8 +84,9 @@ export default function ManagersPage() {
     },
   });
 
-  const editForm = useForm<ManagerFormData>({
-    resolver: zodResolver(managerFormSchema.omit({ password: true })),
+  const editForm = useForm<EditManagerFormData>({
+    resolver: zodResolver(editManagerFormSchema),
+    mode: 'onChange',
     defaultValues: {
       name: '',
       email: '',
@@ -94,7 +105,7 @@ export default function ManagersPage() {
       }).unwrap();
 
       toast({
-        title: 'Manager Created',
+        title: 'Success',
         description: `${data.name} has been added as a manager.`,
       });
 
@@ -110,7 +121,7 @@ export default function ManagersPage() {
     }
   };
 
-  const handleEditManager = async (data: ManagerFormData) => {
+  const handleEditManager = async (data: EditManagerFormData) => {
     if (!selectedManager) return;
 
     try {
@@ -124,7 +135,7 @@ export default function ManagersPage() {
       }).unwrap();
 
       toast({
-        title: 'Manager Updated',
+        title: 'Success',
         description: `${data.name}'s information has been updated.`,
       });
 
@@ -147,7 +158,7 @@ export default function ManagersPage() {
       await deleteUserTrigger(selectedManager.id).unwrap();
 
       toast({
-        title: 'Manager Deleted',
+        title: 'Success',
         description: `${selectedManager.name} has been removed.`,
       });
 
@@ -180,391 +191,638 @@ export default function ManagersPage() {
 
   const getDomainBadgeColor = (domain: string) => {
     const colors: Record<string, string> = {
-      frontend: 'bg-blue-500/20 text-blue-300 border-blue-500/30',
-      backend: 'bg-green-500/20 text-green-300 border-green-500/30',
-      fullstack: 'bg-purple-500/20 text-purple-300 border-purple-500/30',
-      devops: 'bg-orange-500/20 text-orange-300 border-orange-500/30',
-      qa: 'bg-yellow-500/20 text-yellow-300 border-yellow-500/30',
-      hr: 'bg-pink-500/20 text-pink-300 border-pink-500/30',
+      frontend: 'bg-blue-500/10 text-blue-400',
+      backend: 'bg-green-500/10 text-green-400',
+      fullstack: 'bg-purple-500/10 text-purple-400',
+      devops: 'bg-orange-500/10 text-orange-400',
+      qa: 'bg-yellow-500/10 text-yellow-400',
+      hr: 'bg-pink-500/10 text-pink-400',
     };
-    return colors[domain] || 'bg-gray-500/20 text-gray-300 border-gray-500/30';
+    return colors[domain] || 'bg-gray-500/10 text-gray-400';
   };
+
+  // Reset page when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filters.search, filters.domain]);
 
   if (user?.role !== 'manager') {
     return null;
   }
 
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
+  // Pagination
+  const totalPages = Math.ceil(filteredManagers.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const paginatedManagers = filteredManagers.slice(startIndex, startIndex + itemsPerPage);
+
   return (
     <div className="min-h-screen w-full max-w-full overflow-x-hidden">
-      <div className="content-responsive py-4 sm:py-6 space-y-6">
-        {/* Header */}
-        <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4"
-        >
-          <div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-white flex items-center gap-3">
-              <Shield className="w-8 h-8 text-purple-400" />
-              Managers
-            </h1>
-            <p className="text-white/60 mt-1">Manage administrator accounts</p>
-          </div>
-
-          <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-            <DialogTrigger asChild>
-              <Button className="gradient-primary text-white">
-                <Plus className="w-4 h-4 mr-2" />
-                Add Manager
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-md">
-              <DialogHeader>
-                <DialogTitle>Add New Manager</DialogTitle>
-              </DialogHeader>
-              <Form {...createForm}>
-                <form onSubmit={createForm.handleSubmit(handleCreateManager)} className="space-y-4">
-                  <FormField
-                    control={createForm.control}
-                    name="name"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Full Name</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Enter full name" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={createForm.control}
-                    name="email"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Email</FormLabel>
-                        <FormControl>
-                          <Input type="email" placeholder="Enter email" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={createForm.control}
-                    name="password"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Password</FormLabel>
-                        <FormControl>
-                          <Input type="password" placeholder="Create password (min 8 chars)" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={createForm.control}
-                    name="domainRole"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Domain Expertise</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select domain" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="frontend">Frontend Development</SelectItem>
-                            <SelectItem value="backend">Backend Development</SelectItem>
-                            <SelectItem value="fullstack">Fullstack Development</SelectItem>
-                            <SelectItem value="devops">DevOps</SelectItem>
-                            <SelectItem value="qa">Quality Assurance</SelectItem>
-                            <SelectItem value="hr">Human Resources</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <DialogFooter>
-                    <Button type="button" variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
-                      Cancel
-                    </Button>
-                    <Button type="submit" className="gradient-primary">
-                      Create Manager
-                    </Button>
-                  </DialogFooter>
-                </form>
-              </Form>
-            </DialogContent>
-          </Dialog>
-        </motion.div>
-
-        {/* Filters */}
+      <div className="content-responsive py-4 sm:py-6">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between"
+          transition={{ duration: 0.5 }}
+          className="space-y-8"
         >
-          <div className="relative w-full sm:w-80">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-white/40" />
-            <Input
-              placeholder="Search managers..."
-              className="pl-10 bg-white/5 border-white/10"
-              value={filters.search}
-              onChange={(e) => setFilters({ ...filters, search: e.target.value })}
-            />
-          </div>
-          <div className="flex gap-2">
-            <Button
-              variant={viewMode === 'table' ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setViewMode('table')}
-            >
-              <Table2 className="w-4 h-4" />
-            </Button>
-            <Button
-              variant={viewMode === 'card' ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setViewMode('card')}
-            >
-              <LayoutGrid className="w-4 h-4" />
-            </Button>
-          </div>
-        </motion.div>
+          {/* Header */}
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, ease: "easeOut" }}
+            className="premium-card"
+          >
+            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-6 space-y-4 lg:space-y-0">
+              <div className="space-y-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-card rounded-xl flex items-center justify-center ring-1 ring-border">
+                    <Shield className="w-5 h-5 text-foreground" />
+                  </div>
+                  <div>
+                    <h1 className="text-3xl font-bold text-foreground">Managers</h1>
+                    <div className="flex items-center gap-2 mt-1">
+                      <Sparkles className="w-4 h-4 text-foreground" />
+                      <p className="text-muted-foreground">Administrator account management</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
 
-        {/* Content */}
-        {isLoading ? (
-          <div className="flex items-center justify-center py-20">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-500"></div>
-          </div>
-        ) : managers.length === 0 ? (
-          <Card className="bg-white/5 border-white/10">
-            <CardContent className="flex flex-col items-center justify-center py-20">
-              <Shield className="w-16 h-16 text-white/20 mb-4" />
-              <h3 className="text-xl font-semibold text-white mb-2">No managers found</h3>
-              <p className="text-white/60">Add a new manager to get started.</p>
-            </CardContent>
-          </Card>
-        ) : viewMode === 'table' ? (
-          <Card className="bg-white/5 border-white/10">
-            <Table>
-              <TableHeader>
-                <TableRow className="border-white/10">
-                  <TableHead className="text-white/60">Name</TableHead>
-                  <TableHead className="text-white/60">Email</TableHead>
-                  <TableHead className="text-white/60">Domain</TableHead>
-                  <TableHead className="text-white/60">Status</TableHead>
-                  <TableHead className="text-white/60 text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {managers.map((manager) => (
-                  <TableRow key={manager.id} className="border-white/10 hover:bg-white/5">
-                    <TableCell>
-                      <div className="flex items-center gap-3">
-                        <Avatar className="w-10 h-10">
-                          <AvatarImage src={manager.avatarUrl || undefined} />
-                          <AvatarFallback className="bg-purple-500/20 text-purple-300">
-                            {manager.name?.split(' ').map((n) => n[0]).join('')}
-                          </AvatarFallback>
-                        </Avatar>
-                        <span className="font-medium text-white">{manager.name}</span>
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-white/70">{manager.email}</TableCell>
-                    <TableCell>
-                      <Badge className={getDomainBadgeColor(manager.domainRole || 'fullstack')}>
-                        {manager.domainRole || 'N/A'}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <Badge className="bg-green-500/20 text-green-300 border-green-500/30">
-                        Active
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex justify-end gap-2">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => openEditDialog(manager)}
-                          className="text-blue-400 hover:text-blue-300"
-                        >
-                          <Edit className="w-4 h-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => openDeleteDialog(manager)}
-                          className="text-red-400 hover:text-red-300"
-                          disabled={manager.id === user?.id}
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </Card>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {managers.map((manager) => (
-              <motion.div
-                key={manager.id}
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.3 }}
+              {/* Stats Summary */}
+              <div className="flex items-center gap-4">
+                <div className="text-center px-4 py-2 premium-card rounded-lg">
+                  <p className="text-2xl font-bold text-foreground">{managers.length}</p>
+                  <p className="text-xs text-muted-foreground">Total</p>
+                </div>
+                <div className="text-center px-4 py-2 premium-card rounded-lg">
+                  <p className="text-2xl font-bold text-foreground">{managers.length}</p>
+                  <p className="text-xs text-muted-foreground">Active</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex gap-2">
+              <button
+                onClick={() => refetch()}
+                className="btn-outline hover-lift flex items-center gap-2"
               >
-                <Card className="bg-white/5 border-white/10 hover:bg-white/10 transition-all duration-300">
-                  <CardContent className="p-6">
-                    <div className="flex items-start justify-between mb-4">
-                      <div className="flex items-center gap-3">
-                        <Avatar className="w-12 h-12">
-                          <AvatarImage src={manager.avatarUrl || undefined} />
-                          <AvatarFallback className="bg-purple-500/20 text-purple-300">
-                            {manager.name?.split(' ').map((n) => n[0]).join('')}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div>
-                          <h3 className="font-semibold text-white">{manager.name}</h3>
-                          <p className="text-sm text-white/60">{manager.email}</p>
+                <Search className="w-4 h-4" />
+                Refresh ({managers.length})
+              </button>
+
+              <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+                <DialogTrigger asChild>
+                  <button className="btn-gradient hover-lift flex items-center gap-2">
+                    <Plus className="w-4 h-4" />
+                    Add Manager
+                  </button>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto bg-card border border-white/10 p-6 rounded-xl">
+                  <DialogHeader>
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className="w-8 h-8 gradient-primary rounded-lg flex items-center justify-center">
+                        <Shield className="w-4 h-4 text-white" />
+                      </div>
+                      <DialogTitle className="text-xl font-bold text-premium">Add New Manager</DialogTitle>
+                    </div>
+                  </DialogHeader>
+                  <Form {...createForm}>
+                    <form onSubmit={createForm.handleSubmit(handleCreateManager)} className="space-y-4">
+                      <FormField
+                        control={createForm.control}
+                        name="name"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="form-label">Full Name</FormLabel>
+                            <FormControl>
+                              <Input placeholder="Enter full name" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={createForm.control}
+                        name="email"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="form-label">Email</FormLabel>
+                            <FormControl>
+                              <Input type="email" placeholder="Enter email address" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={createForm.control}
+                        name="password"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="form-label">Password</FormLabel>
+                            <FormControl>
+                              <Input type="password" placeholder="Enter password (min 8 characters)" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={createForm.control}
+                        name="domainRole"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="form-label">Domain Expertise</FormLabel>
+                            <Select onValueChange={field.onChange} defaultValue={field.value}>
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Select domain" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                <SelectItem value="frontend">Frontend</SelectItem>
+                                <SelectItem value="backend">Backend</SelectItem>
+                                <SelectItem value="fullstack">Fullstack</SelectItem>
+                                <SelectItem value="devops">DevOps</SelectItem>
+                                <SelectItem value="qa">QA</SelectItem>
+                                <SelectItem value="hr">HR</SelectItem>
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <div className="flex justify-end space-x-3 pt-6">
+                        <button
+                          type="button"
+                          className="px-6 py-2.5 rounded-lg border border-white/20 bg-white/5 hover:bg-white/10 transition-all duration-300 text-white/80 hover:text-white"
+                          onClick={() => setIsCreateDialogOpen(false)}
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          type="submit"
+                          className="btn-gradient"
+                          disabled={!createForm.formState.isValid}
+                        >
+                          {!createForm.formState.isValid ? 'Fill Required Fields' : 'Create Manager'}
+                        </button>
+                      </div>
+                    </form>
+                  </Form>
+                </DialogContent>
+              </Dialog>
+            </div>
+          </motion.div>
+
+          {/* Filters */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2, duration: 0.6 }}
+            className="premium-card"
+          >
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-8 h-8 bg-card rounded-lg flex items-center justify-center ring-1 ring-border">
+                <Filter className="w-4 h-4 text-foreground" />
+              </div>
+              <h2 className="text-lg font-semibold text-foreground">Filter & Search</h2>
+            </div>
+            <div className="flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-4">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                <input
+                  className="input-premium pl-10 w-full"
+                  placeholder="Search managers by name or email..."
+                  value={filters.search}
+                  onChange={(e) => setFilters({ ...filters, search: e.target.value })}
+                />
+              </div>
+              <Select value={filters.domain} onValueChange={(value) => setFilters({ ...filters, domain: value })}>
+                <SelectTrigger className="w-[180px] input-premium">
+                  <SelectValue placeholder="All Domains" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Domains</SelectItem>
+                  <SelectItem value="frontend">Frontend</SelectItem>
+                  <SelectItem value="backend">Backend</SelectItem>
+                  <SelectItem value="fullstack">Fullstack</SelectItem>
+                  <SelectItem value="devops">DevOps</SelectItem>
+                  <SelectItem value="qa">QA</SelectItem>
+                  <SelectItem value="hr">HR</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </motion.div>
+
+          {/* Managers List */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.4, duration: 0.6 }}
+          >
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-8 h-8 gradient-success rounded-lg flex items-center justify-center">
+                <Users className="w-4 h-4 text-white" />
+              </div>
+              <h2 className="text-lg font-semibold text-premium">All Managers</h2>
+              <div className="ml-auto flex items-center gap-4">
+                <div className="flex items-center gap-2 px-3 py-1.5 bg-white/10 rounded-lg">
+                  <Crown className="w-4 h-4 text-yellow-400" />
+                  <span className="text-sm font-medium text-white">{filteredManagers.length} Total</span>
+                </div>
+
+                {/* View Toggle */}
+                <div className="flex items-center gap-1 bg-white/5 rounded-lg p-1">
+                  <button
+                    onClick={() => setViewMode('table')}
+                    className={`p-2 rounded-md transition-all ${
+                      viewMode === 'table'
+                        ? 'bg-white/20 text-white'
+                        : 'text-white/50 hover:text-white/80 hover:bg-white/10'
+                    }`}
+                    title="Table View"
+                  >
+                    <Table2 className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => setViewMode('card')}
+                    className={`p-2 rounded-md transition-all ${
+                      viewMode === 'card'
+                        ? 'bg-white/20 text-white'
+                        : 'text-white/50 hover:text-white/80 hover:bg-white/10'
+                    }`}
+                    title="Card View"
+                  >
+                    <LayoutGrid className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {viewMode === 'table' ? (
+              <div className="premium-card overflow-hidden">
+                {paginatedManagers.length > 0 ? (
+                  <>
+                    <div className="overflow-x-auto">
+                      <table className="w-full">
+                        <thead>
+                          <tr className="border-b border-white/10">
+                            <th className="text-left py-4 px-6 text-sm font-semibold text-white/70 uppercase tracking-wider">Name</th>
+                            <th className="text-left py-4 px-6 text-sm font-semibold text-white/70 uppercase tracking-wider">Email</th>
+                            <th className="text-left py-4 px-6 text-sm font-semibold text-white/70 uppercase tracking-wider">Domain</th>
+                            <th className="text-left py-4 px-6 text-sm font-semibold text-white/70 uppercase tracking-wider">Status</th>
+                            <th className="text-right py-4 px-6 text-sm font-semibold text-white/70 uppercase tracking-wider">Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {paginatedManagers.map((manager, index) => (
+                            <motion.tr
+                              key={manager.id}
+                              initial={{ opacity: 0, x: -20 }}
+                              animate={{ opacity: 1, x: 0 }}
+                              transition={{ delay: index * 0.05 }}
+                              className="border-b border-white/5 hover:bg-white/5 transition-colors"
+                            >
+                              <td className="py-4 px-6">
+                                <div className="flex items-center gap-3">
+                                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center flex-shrink-0">
+                                    <span className="text-sm font-semibold text-white">
+                                      {manager.name?.split(' ').map((n: string) => n[0]).join('') || 'M'}
+                                    </span>
+                                  </div>
+                                  <div>
+                                    <p className="font-medium text-white">{manager.name || 'Unknown'}</p>
+                                    <p className="text-xs text-white/60">Manager</p>
+                                  </div>
+                                </div>
+                              </td>
+                              <td className="py-4 px-6">
+                                <p className="text-sm text-white/80">{manager.email}</p>
+                              </td>
+                              <td className="py-4 px-6">
+                                <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium capitalize ${getDomainBadgeColor(manager.domainRole || 'fullstack')}`}>
+                                  {manager.domainRole || 'N/A'}
+                                </span>
+                              </td>
+                              <td className="py-4 px-6">
+                                <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-green-500/10 text-green-400">
+                                  Active
+                                </span>
+                              </td>
+                              <td className="py-4 px-6">
+                                <div className="flex items-center justify-end gap-2">
+                                  <button
+                                    onClick={() => openEditDialog(manager)}
+                                    className="p-2 rounded-lg bg-white/5 hover:bg-white/10 transition-colors"
+                                    title="Edit Manager"
+                                  >
+                                    <Edit className="w-4 h-4 text-blue-400" />
+                                  </button>
+                                  <button
+                                    onClick={() => openDeleteDialog(manager)}
+                                    disabled={manager.id === user?.id}
+                                    className={`p-2 rounded-lg transition-colors ${
+                                      manager.id === user?.id
+                                        ? 'bg-white/5 text-white/30 cursor-not-allowed'
+                                        : 'bg-white/5 hover:bg-red-500/20'
+                                    }`}
+                                    title={manager.id === user?.id ? "Cannot delete yourself" : "Delete Manager"}
+                                  >
+                                    <Trash2 className={`w-4 h-4 ${manager.id === user?.id ? 'text-white/30' : 'text-red-400'}`} />
+                                  </button>
+                                </div>
+                              </td>
+                            </motion.tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+
+                    {/* Pagination */}
+                    {filteredManagers.length > itemsPerPage && (
+                      <div className="flex items-center justify-between px-6 py-4 border-t border-white/10">
+                        <div className="flex items-center gap-4">
+                          <div className="text-sm text-white/60">
+                            Showing {startIndex + 1} to {Math.min(startIndex + itemsPerPage, filteredManagers.length)} of {filteredManagers.length}
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm text-white/60">Show:</span>
+                            <Select value={itemsPerPage.toString()} onValueChange={(value) => {
+                              setItemsPerPage(Number(value));
+                              setCurrentPage(1);
+                            }}>
+                              <SelectTrigger className="w-[70px] h-8 bg-white/5 border-white/10">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="5">5</SelectItem>
+                                <SelectItem value="10">10</SelectItem>
+                                <SelectItem value="25">25</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                            disabled={currentPage === 1}
+                            className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                              currentPage === 1
+                                ? 'bg-white/5 text-white/30 cursor-not-allowed'
+                                : 'bg-white/10 text-white hover:bg-white/20'
+                            }`}
+                          >
+                            Previous
+                          </button>
+                          {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                            <button
+                              key={page}
+                              onClick={() => setCurrentPage(page)}
+                              className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                                currentPage === page
+                                  ? 'bg-purple-600 text-white'
+                                  : 'bg-white/10 text-white hover:bg-white/20'
+                              }`}
+                            >
+                              {page}
+                            </button>
+                          ))}
+                          <button
+                            onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                            disabled={currentPage === totalPages}
+                            className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                              currentPage === totalPages
+                                ? 'bg-white/5 text-white/30 cursor-not-allowed'
+                                : 'bg-white/10 text-white hover:bg-white/20'
+                            }`}
+                          >
+                            Next
+                          </button>
                         </div>
                       </div>
-                      <Shield className="w-5 h-5 text-purple-400" />
+                    )}
+                  </>
+                ) : (
+                  <div className="text-center py-16">
+                    <div className="w-16 h-16 gradient-primary rounded-full flex items-center justify-center mx-auto mb-4">
+                      <Shield className="w-8 h-8 text-white" />
                     </div>
-                    <div className="flex items-center gap-2 mb-4">
-                      <Badge className={getDomainBadgeColor(manager.domainRole || 'fullstack')}>
-                        {manager.domainRole || 'N/A'}
-                      </Badge>
-                      <Badge className="bg-green-500/20 text-green-300 border-green-500/30">
-                        Active
-                      </Badge>
+                    <h3 className="text-lg font-semibold text-premium mb-2">No managers found</h3>
+                    <p className="text-foreground-secondary mb-6">Add a new manager to get started</p>
+                    <button
+                      className="btn-gradient"
+                      onClick={() => setIsCreateDialogOpen(true)}
+                    >
+                      <Plus className="w-4 h-4 mr-2" />
+                      Add Manager
+                    </button>
+                  </div>
+                )}
+              </div>
+            ) : (
+              // Card View
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                {paginatedManagers.length > 0 ? paginatedManagers.map((manager, index) => (
+                  <motion.div
+                    key={manager.id}
+                    initial={{ opacity: 0, y: 30, scale: 0.9 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    transition={{
+                      duration: 0.5,
+                      delay: index * 0.1,
+                      type: "spring",
+                      bounce: 0.3
+                    }}
+                    className="hover-lift"
+                  >
+                    <div className="premium-card h-full">
+                      <div className="flex items-start justify-between mb-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
+                            <span className="text-lg font-semibold text-white">
+                              {manager.name?.split(' ').map((n: string) => n[0]).join('') || 'M'}
+                            </span>
+                          </div>
+                          <div>
+                            <h3 className="font-semibold text-white">{manager.name}</h3>
+                            <p className="text-sm text-white/60">{manager.email}</p>
+                          </div>
+                        </div>
+                        <Shield className="w-5 h-5 text-purple-400" />
+                      </div>
+                      <div className="flex items-center gap-2 mb-4">
+                        <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium capitalize ${getDomainBadgeColor(manager.domainRole || 'fullstack')}`}>
+                          {manager.domainRole || 'N/A'}
+                        </span>
+                        <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-green-500/10 text-green-400">
+                          Active
+                        </span>
+                      </div>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => openEditDialog(manager)}
+                          className="flex-1 px-3 py-2 rounded-lg bg-white/5 hover:bg-white/10 transition-colors text-sm font-medium text-white/80 hover:text-white flex items-center justify-center gap-2"
+                        >
+                          <Edit className="w-4 h-4" />
+                          Edit
+                        </button>
+                        <button
+                          onClick={() => openDeleteDialog(manager)}
+                          disabled={manager.id === user?.id}
+                          className={`px-3 py-2 rounded-lg transition-colors ${
+                            manager.id === user?.id
+                              ? 'bg-white/5 text-white/30 cursor-not-allowed'
+                              : 'bg-white/5 hover:bg-red-500/20 text-red-400'
+                          }`}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
                     </div>
-                    <div className="flex gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="flex-1"
-                        onClick={() => openEditDialog(manager)}
+                  </motion.div>
+                )) : (
+                  <div className="col-span-full">
+                    <div className="premium-card text-center py-16">
+                      <div className="w-16 h-16 gradient-primary rounded-full flex items-center justify-center mx-auto mb-4">
+                        <Shield className="w-8 h-8 text-white" />
+                      </div>
+                      <h3 className="text-lg font-semibold text-premium mb-2">No managers found</h3>
+                      <p className="text-foreground-secondary mb-6">Add a new manager to get started</p>
+                      <button
+                        className="btn-gradient"
+                        onClick={() => setIsCreateDialogOpen(true)}
                       >
-                        <Edit className="w-4 h-4 mr-2" />
-                        Edit
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="text-red-400 hover:text-red-300"
-                        onClick={() => openDeleteDialog(manager)}
-                        disabled={manager.id === user?.id}
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
+                        <Plus className="w-4 h-4 mr-2" />
+                        Add Manager
+                      </button>
                     </div>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            ))}
-          </div>
-        )}
-
-        {/* Edit Dialog */}
-        <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-          <DialogContent className="sm:max-w-md">
-            <DialogHeader>
-              <DialogTitle>Edit Manager</DialogTitle>
-            </DialogHeader>
-            <Form {...editForm}>
-              <form onSubmit={editForm.handleSubmit(handleEditManager)} className="space-y-4">
-                <FormField
-                  control={editForm.control}
-                  name="name"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Full Name</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Enter full name" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={editForm.control}
-                  name="email"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Email</FormLabel>
-                      <FormControl>
-                        <Input type="email" placeholder="Enter email" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={editForm.control}
-                  name="domainRole"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Domain Expertise</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select domain" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="frontend">Frontend Development</SelectItem>
-                          <SelectItem value="backend">Backend Development</SelectItem>
-                          <SelectItem value="fullstack">Fullstack Development</SelectItem>
-                          <SelectItem value="devops">DevOps</SelectItem>
-                          <SelectItem value="qa">Quality Assurance</SelectItem>
-                          <SelectItem value="hr">Human Resources</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <DialogFooter>
-                  <Button type="button" variant="outline" onClick={() => setIsEditDialogOpen(false)}>
-                    Cancel
-                  </Button>
-                  <Button type="submit" className="gradient-primary">
-                    Save Changes
-                  </Button>
-                </DialogFooter>
-              </form>
-            </Form>
-          </DialogContent>
-        </Dialog>
-
-        {/* Delete Confirmation Dialog */}
-        <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-          <DialogContent className="sm:max-w-md">
-            <DialogHeader>
-              <DialogTitle>Delete Manager</DialogTitle>
-            </DialogHeader>
-            <p className="text-white/70">
-              Are you sure you want to delete <strong>{selectedManager?.name}</strong>? This action cannot be undone.
-            </p>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)}>
-                Cancel
-              </Button>
-              <Button variant="destructive" onClick={handleDeleteManager}>
-                Delete
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+                  </div>
+                )}
+              </div>
+            )}
+          </motion.div>
+        </motion.div>
       </div>
+
+      {/* Edit Dialog */}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent className="sm:max-w-[500px] bg-card border border-white/10 p-6 rounded-xl">
+          <DialogHeader>
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-8 h-8 gradient-primary rounded-lg flex items-center justify-center">
+                <Edit className="w-4 h-4 text-white" />
+              </div>
+              <DialogTitle className="text-xl font-bold text-premium">Edit Manager</DialogTitle>
+            </div>
+          </DialogHeader>
+          <Form {...editForm}>
+            <form onSubmit={editForm.handleSubmit(handleEditManager)} className="space-y-4">
+              <FormField
+                control={editForm.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="form-label">Full Name</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Enter full name" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={editForm.control}
+                name="email"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="form-label">Email</FormLabel>
+                    <FormControl>
+                      <Input type="email" placeholder="Enter email" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={editForm.control}
+                name="domainRole"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="form-label">Domain Expertise</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select domain" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="frontend">Frontend</SelectItem>
+                        <SelectItem value="backend">Backend</SelectItem>
+                        <SelectItem value="fullstack">Fullstack</SelectItem>
+                        <SelectItem value="devops">DevOps</SelectItem>
+                        <SelectItem value="qa">QA</SelectItem>
+                        <SelectItem value="hr">HR</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <div className="flex justify-end space-x-3 pt-6">
+                <button
+                  type="button"
+                  className="px-6 py-2.5 rounded-lg border border-white/20 bg-white/5 hover:bg-white/10 transition-all duration-300 text-white/80 hover:text-white"
+                  onClick={() => setIsEditDialogOpen(false)}
+                >
+                  Cancel
+                </button>
+                <button type="submit" className="btn-gradient">
+                  Save Changes
+                </button>
+              </div>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <DialogContent className="sm:max-w-[400px] bg-card border border-white/10 p-6 rounded-xl">
+          <DialogHeader>
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-8 h-8 bg-red-500/20 rounded-lg flex items-center justify-center">
+                <Trash2 className="w-4 h-4 text-red-400" />
+              </div>
+              <DialogTitle className="text-xl font-bold text-premium">Delete Manager</DialogTitle>
+            </div>
+          </DialogHeader>
+          <p className="text-white/70 mb-6">
+            Are you sure you want to delete <strong className="text-white">{selectedManager?.name}</strong>? This action cannot be undone.
+          </p>
+          <div className="flex justify-end space-x-3">
+            <button
+              className="px-6 py-2.5 rounded-lg border border-white/20 bg-white/5 hover:bg-white/10 transition-all duration-300 text-white/80 hover:text-white"
+              onClick={() => setIsDeleteDialogOpen(false)}
+            >
+              Cancel
+            </button>
+            <button
+              className="px-6 py-2.5 rounded-lg bg-red-500 hover:bg-red-600 transition-colors text-white font-medium"
+              onClick={handleDeleteManager}
+            >
+              Delete
+            </button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

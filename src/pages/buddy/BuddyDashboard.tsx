@@ -8,8 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
-import { CheckCircle, Clock, FileText, AlertCircle, Calendar, Target } from 'lucide-react';
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+import { CheckCircle, Clock, FileText, AlertCircle, ArrowRight, GraduationCap, Target, TrendingUp, BookOpen } from 'lucide-react';
 
 export default function BuddyDashboard() {
   const user = useSelector((state: any) => state.auth.user);
@@ -39,7 +38,7 @@ export default function BuddyDashboard() {
   if (!buddyId) {
     return (
       <Layout>
-        <div className="container mx-auto py-6">
+        <div className="w-full px-6 py-6">
           <Card>
             <CardContent className="text-center py-10">
               <AlertCircle className="h-12 w-12 text-yellow-500 mx-auto mb-4" />
@@ -55,56 +54,25 @@ export default function BuddyDashboard() {
   if (loadingCurriculum || loadingAssignments) {
     return (
       <Layout>
-        <div className="container mx-auto py-6">
-          <p>Loading your curriculum...</p>
+        <div className="w-full px-6 py-6">
+          <p>Loading dashboard...</p>
         </div>
       </Layout>
     );
   }
 
-  if (curriculumError || !curriculumData) {
-    return (
-      <Layout>
-        <div className="container mx-auto py-6">
-          <Card>
-            <CardContent className="text-center py-10">
-              <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-medium mb-2">No Curriculum Assigned</h3>
-              <p className="text-gray-600">You haven't been assigned a curriculum yet. Please contact your mentor.</p>
-            </CardContent>
-          </Card>
-        </div>
-      </Layout>
-    );
-  }
+  // Calculate stats
+  const inProgressTasks = assignments.filter((a: any) => a.assignment.status === 'in_progress').length;
+  const submittedTasks = assignments.filter((a: any) => ['submitted', 'under_review'].includes(a.assignment.status)).length;
+  const needsRevisionTasks = assignments.filter((a: any) => a.assignment.status === 'needs_revision').length;
+  const completedTasksCount = assignments.filter((a: any) => a.assignment.status === 'completed').length;
+  const totalTasks = curriculumData?.totalTasks || 0;
+  const overallProgress = curriculumData?.overallProgress || 0;
 
-  const { enrollment, curriculum, weekProgress, totalTasks, completedTasks, overallProgress } = curriculumData;
-
-  // Group assignments by week
-  const assignmentsByWeek = assignments.reduce((acc: any, item: any) => {
-    const weekId = item.week?.id;
-    if (!acc[weekId]) {
-      acc[weekId] = [];
-    }
-    acc[weekId].push(item);
-    return acc;
-  }, {});
-
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'completed':
-        return <CheckCircle className="h-5 w-5 text-green-500" />;
-      case 'submitted':
-      case 'under_review':
-        return <Clock className="h-5 w-5 text-blue-500" />;
-      case 'needs_revision':
-        return <AlertCircle className="h-5 w-5 text-yellow-500" />;
-      case 'in_progress':
-        return <Clock className="h-5 w-5 text-orange-500" />;
-      default:
-        return <FileText className="h-5 w-5 text-gray-400" />;
-    }
-  };
+  // Get recent/active tasks
+  const activeTasks = assignments
+    .filter((a: any) => ['in_progress', 'needs_revision'].includes(a.assignment.status))
+    .slice(0, 3);
 
   const getStatusBadge = (status: string) => {
     const variants: Record<string, any> = {
@@ -117,177 +85,197 @@ export default function BuddyDashboard() {
     };
 
     const config = variants[status] || { variant: 'outline', label: status };
-    return (
-      <Badge {...config}>
-        {config.label}
-      </Badge>
-    );
+    return <Badge {...config}>{config.label}</Badge>;
   };
 
   return (
     <Layout>
-      <div className="container mx-auto py-6">
+      <div className="w-full px-6 py-6">
         {/* Header */}
         <div className="mb-6">
           <h1 className="text-3xl font-bold mb-2">Welcome back, {user?.name || 'Buddy'}!</h1>
-          <h2 className="text-xl text-gray-600">{curriculum.name}</h2>
+          <p className="text-muted-foreground">Here's an overview of your learning progress</p>
         </div>
 
-        {/* Progress Card */}
-        <Card className="mb-6">
-          <CardHeader>
-            <CardTitle>Overall Progress</CardTitle>
-            <CardDescription>Your journey through the curriculum</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div>
-                <div className="flex justify-between mb-2">
-                  <span className="text-sm font-medium">
-                    Completed: {completedTasks}/{totalTasks} tasks
-                  </span>
-                  <span className="text-sm font-medium">{overallProgress}%</span>
+        {/* Stats Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+          <Card>
+            <CardContent className="pt-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-muted-foreground">Overall Progress</p>
+                  <p className="text-2xl font-bold">{overallProgress}%</p>
                 </div>
-                <Progress value={overallProgress} className="h-3" />
+                <TrendingUp className="h-8 w-8 text-green-500" />
               </div>
+              <Progress value={overallProgress} className="mt-3 h-2" />
+            </CardContent>
+          </Card>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
-                <div className="flex items-center gap-3">
-                  <Calendar className="h-5 w-5 text-gray-500" />
-                  <div>
-                    <p className="text-sm text-gray-500">Started</p>
-                    <p className="font-semibold">
-                      {enrollment.startedAt ? new Date(enrollment.startedAt).toLocaleDateString() : 'Not started'}
-                    </p>
-                  </div>
+          <Card>
+            <CardContent className="pt-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-muted-foreground">Completed Tasks</p>
+                  <p className="text-2xl font-bold">{completedTasksCount}/{totalTasks}</p>
                 </div>
-
-                <div className="flex items-center gap-3">
-                  <Target className="h-5 w-5 text-gray-500" />
-                  <div>
-                    <p className="text-sm text-gray-500">Current Week</p>
-                    <p className="font-semibold">Week {enrollment.currentWeek || 1}</p>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-3">
-                  <CheckCircle className="h-5 w-5 text-gray-500" />
-                  <div>
-                    <p className="text-sm text-gray-500">Target Completion</p>
-                    <p className="font-semibold">
-                      {enrollment.targetCompletionDate
-                        ? new Date(enrollment.targetCompletionDate).toLocaleDateString()
-                        : 'N/A'}
-                    </p>
-                  </div>
-                </div>
+                <CheckCircle className="h-8 w-8 text-green-500" />
               </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
 
-        {/* Weekly Progress */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Weekly Progress</CardTitle>
-            <CardDescription>All tasks are visible - work at your own pace!</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Accordion type="multiple" className="w-full">
-              {weekProgress && weekProgress.length > 0 ? (
-                weekProgress.map((week: any) => {
-                  const weekTasks = assignmentsByWeek[week.curriculumWeekId] || [];
-                  const weekData = weekTasks[0]?.week;
+          <Card>
+            <CardContent className="pt-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-muted-foreground">In Progress</p>
+                  <p className="text-2xl font-bold">{inProgressTasks}</p>
+                </div>
+                <Clock className="h-8 w-8 text-orange-500" />
+              </div>
+            </CardContent>
+          </Card>
 
-                  return (
-                    <AccordionItem key={week.id} value={week.id}>
-                      <AccordionTrigger className="hover:no-underline">
-                        <div className="flex items-center justify-between w-full pr-4">
-                          <div className="flex items-center gap-3">
-                            <div className="text-left">
-                              <div className="flex items-center gap-2">
-                                <p className="font-semibold">
-                                  Week {week.weekNumber}: {weekData?.title || `Week ${week.weekNumber}`}
-                                </p>
-                                {week.status === 'completed' && (
-                                  <CheckCircle className="h-4 w-4 text-green-500" />
-                                )}
-                              </div>
-                              <p className="text-sm text-gray-500">
-                                {week.completedTasks}/{week.totalTasks} tasks ({week.progressPercentage}%)
-                              </p>
-                            </div>
-                          </div>
+          <Card>
+            <CardContent className="pt-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-muted-foreground">Awaiting Review</p>
+                  <p className="text-2xl font-bold">{submittedTasks}</p>
+                </div>
+                <FileText className="h-8 w-8 text-blue-500" />
+              </div>
+            </CardContent>
+          </Card>
+        </div>
 
-                          <div className="flex items-center gap-2">
-                            <Progress value={week.progressPercentage} className="w-24 h-2" />
-                            <span className="text-sm font-medium">{week.progressPercentage}%</span>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Active Tasks */}
+          <div className="lg:col-span-2">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between">
+                <div>
+                  <CardTitle>Active Tasks</CardTitle>
+                  <CardDescription>Tasks you're currently working on</CardDescription>
+                </div>
+                <Link href="/buddy/curriculum">
+                  <Button variant="outline" size="sm">
+                    View All
+                    <ArrowRight className="h-4 w-4 ml-2" />
+                  </Button>
+                </Link>
+              </CardHeader>
+              <CardContent>
+                {activeTasks.length === 0 ? (
+                  <div className="text-center py-8">
+                    <Target className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
+                    <p className="text-muted-foreground mb-4">No active tasks</p>
+                    <Link href="/buddy/curriculum">
+                      <Button>Start a Task</Button>
+                    </Link>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {activeTasks.map((item: any) => (
+                      <div
+                        key={item.assignment.id}
+                        className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors"
+                      >
+                        <div className="flex-1">
+                          <p className="font-medium">{item.taskTemplate?.title || 'Untitled Task'}</p>
+                          <div className="flex items-center gap-2 mt-1">
+                            {getStatusBadge(item.assignment.status)}
+                            {item.taskTemplate?.estimatedHours && (
+                              <span className="text-xs text-muted-foreground">
+                                {item.taskTemplate.estimatedHours}h estimated
+                              </span>
+                            )}
                           </div>
                         </div>
-                      </AccordionTrigger>
+                        <Link href={`/buddy/task/${item.assignment.id}`}>
+                          <Button size="sm">Continue</Button>
+                        </Link>
+                      </div>
+                    ))}
+                  </div>
+                )}
 
-                      <AccordionContent>
-                        <div className="pl-8 pr-4 py-4 space-y-3">
-                          {weekData?.description && (
-                            <p className="text-sm text-gray-600 mb-4">{weekData.description}</p>
-                          )}
+                {needsRevisionTasks > 0 && (
+                  <div className="mt-4 p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg border border-yellow-200 dark:border-yellow-800">
+                    <div className="flex items-center gap-2">
+                      <AlertCircle className="h-5 w-5 text-yellow-600" />
+                      <p className="text-sm text-yellow-800 dark:text-yellow-200">
+                        <strong>{needsRevisionTasks} task(s)</strong> need revision based on mentor feedback
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
 
-                          {weekTasks.length === 0 ? (
-                            <p className="text-sm text-gray-500">No tasks for this week yet.</p>
-                          ) : (
-                            <div className="space-y-2">
-                              {weekTasks.map((item: any) => (
-                                <div
-                                  key={item.assignment.id}
-                                  className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800"
-                                >
-                                  <div className="flex items-center gap-3 flex-1">
-                                    {getStatusIcon(item.assignment.status)}
-                                    <div className="flex-1">
-                                      <p className="font-medium">{item.taskTemplate?.title || 'Untitled Task'}</p>
-                                      <div className="flex items-center gap-2 mt-1">
-                                        {getStatusBadge(item.assignment.status)}
-                                        {item.taskTemplate?.difficulty && (
-                                          <Badge variant="outline" className="text-xs">
-                                            {item.taskTemplate.difficulty}
-                                          </Badge>
-                                        )}
-                                        {item.taskTemplate?.estimatedHours && (
-                                          <span className="text-xs text-gray-500">
-                                            {item.taskTemplate.estimatedHours}h
-                                          </span>
-                                        )}
-                                      </div>
-                                    </div>
-                                  </div>
+          {/* Quick Actions */}
+          <div className="space-y-6">
+            {/* Curriculum Card */}
+            {curriculumData && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <GraduationCap className="h-5 w-5" />
+                    {curriculumData.curriculum.name}
+                  </CardTitle>
+                  <CardDescription>Your assigned curriculum</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Current Week</span>
+                      <span className="font-medium">Week {curriculumData.enrollment.currentWeek || 1}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Total Weeks</span>
+                      <span className="font-medium">{curriculumData.curriculum.totalWeeks}</span>
+                    </div>
+                    <Progress value={overallProgress} className="h-2" />
+                    <Link href="/buddy/curriculum">
+                      <Button className="w-full mt-2">
+                        <GraduationCap className="h-4 w-4 mr-2" />
+                        View Curriculum
+                      </Button>
+                    </Link>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
 
-                                  <Link href={`/buddy/task/${item.assignment.id}`}>
-                                    <Button size="sm" variant="outline">
-                                      {item.assignment.status === 'not_started' ? 'Start Task' : 'View Task'}
-                                    </Button>
-                                  </Link>
-                                </div>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      </AccordionContent>
-                    </AccordionItem>
-                  );
-                })
-              ) : (
-                <p className="text-sm text-gray-500">No week progress data available.</p>
-              )}
-            </Accordion>
-
-            <div className="mt-6 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-              <p className="text-sm text-blue-800 dark:text-blue-200">
-                <strong>💡 Tip:</strong> You can work ahead! All tasks are available now. Suggested pace: Complete
-                current week before moving on.
-              </p>
-            </div>
-          </CardContent>
-        </Card>
+            {/* Quick Links */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Quick Links</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                <Link href="/buddy/curriculum">
+                  <Button variant="outline" className="w-full justify-start">
+                    <GraduationCap className="h-4 w-4 mr-2" />
+                    My Curriculum
+                  </Button>
+                </Link>
+                <Link href="/resources">
+                  <Button variant="outline" className="w-full justify-start">
+                    <BookOpen className="h-4 w-4 mr-2" />
+                    Learning Resources
+                  </Button>
+                </Link>
+                <Link href="/settings">
+                  <Button variant="outline" className="w-full justify-start">
+                    <Target className="h-4 w-4 mr-2" />
+                    Settings
+                  </Button>
+                </Link>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
       </div>
     </Layout>
   );

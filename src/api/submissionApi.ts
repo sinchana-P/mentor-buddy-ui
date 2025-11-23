@@ -75,11 +75,45 @@ export interface SubmitTaskData {
   }[];
 }
 
+export interface BuddyDetails {
+  id: string;
+  name: string;
+  email: string;
+  avatarUrl?: string | null;
+  status: string;
+}
+
+export interface WeekInfo {
+  weekNumber: number;
+  weekTitle: string;
+  weekDescription?: string;
+}
+
 export interface ReviewQueueItem {
   submission: Submission;
   assignment: any;
   taskTemplate: any;
   resources: SubmissionResource[];
+  buddyDetails: BuddyDetails;
+  weekInfo: WeekInfo;
+  weekProgress?: any;
+  week?: any;
+  buddy?: any;
+}
+
+export interface ReviewQueueFilters {
+  buddyId?: string;
+  weekNumber?: number;
+  status?: 'pending' | 'under_review' | 'all';
+}
+
+export interface AssignedBuddy {
+  id: string;
+  name: string;
+  email: string;
+  avatarUrl?: string | null;
+  status: string;
+  joinDate: string;
 }
 
 export const submissionApi = apiSlice.injectEndpoints({
@@ -245,9 +279,21 @@ export const submissionApi = apiSlice.injectEndpoints({
     // MENTOR REVIEW QUEUE
     // ═══════════════════════════════════════════════════════════
 
-    getMentorReviewQueue: builder.query<ReviewQueueItem[], string>({
-      query: (mentorId) => `/api/mentors/${mentorId}/review-queue`,
+    getMentorReviewQueue: builder.query<ReviewQueueItem[], { mentorId: string; filters?: ReviewQueueFilters }>({
+      query: ({ mentorId, filters }) => {
+        const params = new URLSearchParams();
+        if (filters?.buddyId) params.append('buddyId', filters.buddyId);
+        if (filters?.weekNumber) params.append('weekNumber', filters.weekNumber.toString());
+        if (filters?.status) params.append('status', filters.status);
+        const queryString = params.toString();
+        return `/api/mentors/${mentorId}/review-queue${queryString ? `?${queryString}` : ''}`;
+      },
       providesTags: ['ReviewQueue'],
+    }),
+
+    getMentorAssignedBuddies: builder.query<AssignedBuddy[], string>({
+      query: (mentorId) => `/api/mentors/${mentorId}/assigned-buddies`,
+      providesTags: ['AssignedBuddies'],
     }),
   }),
 });
@@ -268,4 +314,5 @@ export const {
   useUpdateFeedbackMutation,
   useDeleteFeedbackMutation,
   useGetMentorReviewQueueQuery,
+  useGetMentorAssignedBuddiesQuery,
 } = submissionApi;

@@ -110,7 +110,7 @@ export default function CurriculumDetailsPage() {
   if (isLoading) {
     return (
       <Layout>
-        <div className="container mx-auto py-6">
+        <div className="w-full px-6 py-6">
           <div className="flex items-center mb-6">
             <Button variant="ghost" onClick={() => setLocation('/curriculum')} className="mr-4">
               <ArrowLeft className="h-4 w-4 mr-2" />
@@ -138,7 +138,7 @@ export default function CurriculumDetailsPage() {
   if (isError || !curriculum) {
     return (
       <Layout>
-        <div className="container mx-auto py-6">
+        <div className="w-full px-6 py-6">
           <div className="flex items-center mb-6">
             <Button variant="ghost" onClick={() => setLocation('/curriculum')} className="mr-4">
               <ArrowLeft className="h-4 w-4 mr-2" />
@@ -160,7 +160,7 @@ export default function CurriculumDetailsPage() {
   
   return (
     <Layout>
-      <div className="container mx-auto py-6">
+      <div className="w-full px-6 py-6">
         <div className="flex justify-between items-center mb-6">
           <div className="flex items-center">
             <Button variant="ghost" onClick={() => setLocation('/curriculum')} className="mr-4">

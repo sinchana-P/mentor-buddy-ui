@@ -14,18 +14,25 @@ import {
   LogOut,
   X,
   GraduationCap,
-  MessageSquare
+  MessageSquare,
+  Shield
 } from 'lucide-react';
 import { useState } from 'react';
 import TopBar from './TopBar';
 
-// Base navigation items for all users
+// Base navigation items for manager/mentor
 const baseNavigation = [
-  { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, roles: ['manager', 'mentor', 'buddy'] },
+  { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, roles: ['manager', 'mentor'] },
+];
+
+// Buddy-specific base navigation
+const buddyBaseNavigation = [
+  { name: 'Dashboard', href: '/buddy/dashboard', icon: LayoutDashboard, roles: ['buddy'] },
 ];
 
 // Role-specific navigation items
 const managerNavigation = [
+  { name: 'Managers', href: '/managers', icon: Shield, roles: ['manager'] },
   { name: 'Mentors', href: '/mentors', icon: Users, roles: ['manager'] },
   { name: 'Buddies', href: '/buddies', icon: UserCheck, roles: ['manager', 'mentor'] },
   { name: 'Tasks (Legacy)', href: '/tasks', icon: ClipboardList, roles: ['manager', 'mentor'] },
@@ -38,7 +45,7 @@ const mentorNavigation = [
 ];
 
 const buddyNavigation = [
-  { name: 'My Curriculum', href: '/buddy/dashboard', icon: GraduationCap, roles: ['buddy'] },
+  { name: 'My Curriculum', href: '/buddy/curriculum', icon: GraduationCap, roles: ['buddy'] },
   { name: 'Resources', href: '/resources', icon: BookOpen, roles: ['buddy'] },
 ];
 
@@ -61,8 +68,14 @@ export default function Layout({ children }: LayoutProps) {
   };
 
   const isActive = (href: string) => {
+    // For manager/mentor dashboard
     if (href === '/dashboard') {
       return location === '/' || location === '/dashboard';
+    }
+
+    // For buddy dashboard
+    if (href === '/buddy/dashboard') {
+      return location === '/buddy/dashboard';
     }
 
     // Special case for Buddies and Mentors list pages - don't match detail pages
@@ -76,14 +89,14 @@ export default function Layout({ children }: LayoutProps) {
   // Get navigation items based on user role
   const getNavigationItems = () => {
     const userRole = user?.role || 'buddy';
-    let navItems = [...baseNavigation];
+    let navItems: typeof baseNavigation = [];
 
     if (userRole === 'manager') {
-      navItems = [...navItems, ...managerNavigation];
+      navItems = [...baseNavigation, ...managerNavigation];
     } else if (userRole === 'mentor') {
-      navItems = [...navItems, ...managerNavigation.filter(item => item.roles.includes('mentor')), ...mentorNavigation];
+      navItems = [...baseNavigation, ...managerNavigation.filter(item => item.roles.includes('mentor')), ...mentorNavigation];
     } else if (userRole === 'buddy') {
-      navItems = [...navItems, ...buddyNavigation];
+      navItems = [...buddyBaseNavigation, ...buddyNavigation];
     }
 
     return navItems;

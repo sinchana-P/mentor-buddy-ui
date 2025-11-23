@@ -22,8 +22,10 @@ import CurriculumPage from "@/pages/curriculum";
 import CurriculumDetailsPage from "@/pages/curriculum-details";
 import CurriculumList from "@/pages/curriculum-management/CurriculumList";
 import CurriculumBuilder from "@/pages/curriculum-management/CurriculumBuilder";
+import CurriculumView from "@/pages/curriculum-management/CurriculumView";
 import TaskManagement from "@/pages/curriculum-management/TaskManagement";
 import BuddyDashboard from "@/pages/buddy/BuddyDashboard";
+import MyCurriculum from "@/pages/buddy/MyCurriculum";
 import TaskDetail from "@/pages/buddy/TaskDetail";
 import MentorDashboard from "@/pages/mentor/MentorDashboard";
 import ReviewQueue from "@/pages/mentor/ReviewQueue";
@@ -261,6 +263,12 @@ function Router() {
           </ProtectedRoute>
         )} />
 
+        <Route path="/curriculum-management/:id/view" component={() => (
+          <ProtectedRoute>
+            <CurriculumView />
+          </ProtectedRoute>
+        )} />
+
         <Route path="/curriculum-management/:id" component={() => (
           <ProtectedRoute>
             <CurriculumBuilder />
@@ -277,6 +285,12 @@ function Router() {
         <Route path="/buddy/dashboard" component={() => (
           <ProtectedRoute>
             <BuddyDashboard />
+          </ProtectedRoute>
+        )} />
+
+        <Route path="/buddy/curriculum" component={() => (
+          <ProtectedRoute>
+            <MyCurriculum />
           </ProtectedRoute>
         )} />
 

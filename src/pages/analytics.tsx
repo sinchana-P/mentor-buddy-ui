@@ -148,7 +148,7 @@ export default function Analytics() {
 
   if (isLoading) {
     return (
-      <div className="container mx-auto p-6">
+      <div className="w-full px-6 py-6">
         <div className="animate-pulse space-y-6">
           <div className="h-8 bg-muted rounded w-1/4"></div>
           <div className="grid gap-6 md:grid-cols-4">
@@ -162,7 +162,7 @@ export default function Analytics() {
   }
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
+    <div className="w-full px-6 py-6 space-y-6">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}

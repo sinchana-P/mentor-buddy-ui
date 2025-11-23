@@ -8,7 +8,6 @@ import {
   useApproveSubmissionMutation,
   useRequestRevisionMutation,
   useRejectSubmissionMutation,
-  useAddFeedbackMutation,
 } from '@/api/submissionApi';
 import Layout from '@/components/Layout';
 import { Button } from '@/components/ui/button';
@@ -20,10 +19,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { ArrowLeft, CheckCircle, XCircle, MessageSquare, ExternalLink, AlertCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
-
-const feedbackSchema = z.object({
-  message: z.string().min(5, 'Message must be at least 5 characters'),
-});
+import FeedbackThread from '@/components/FeedbackThread';
 
 const approvalSchema = z.object({
   grade: z.string().optional(),
@@ -33,7 +29,6 @@ const revisionSchema = z.object({
   message: z.string().min(10, 'Please provide detailed feedback'),
 });
 
-type FeedbackFormData = z.infer<typeof feedbackSchema>;
 type ApprovalFormData = z.infer<typeof approvalSchema>;
 type RevisionFormData = z.infer<typeof revisionSchema>;
 
@@ -52,14 +47,8 @@ export default function SubmissionReview() {
   const [approveSubmission, { isLoading: approving }] = useApproveSubmissionMutation();
   const [requestRevision, { isLoading: requesting }] = useRequestRevisionMutation();
   const [rejectSubmission, { isLoading: rejecting }] = useRejectSubmissionMutation();
-  const [addFeedback, { isLoading: addingFeedback }] = useAddFeedbackMutation();
 
   const { toast } = useToast();
-
-  const feedbackForm = useForm<FeedbackFormData>({
-    resolver: zodResolver(feedbackSchema),
-    defaultValues: { message: '' },
-  });
 
   const approvalForm = useForm<ApprovalFormData>({
     resolver: zodResolver(approvalSchema),
@@ -70,16 +59,6 @@ export default function SubmissionReview() {
     resolver: zodResolver(revisionSchema),
     defaultValues: { message: '' },
   });
-
-  const onAddFeedback = async (data: FeedbackFormData) => {
-    try {
-      await addFeedback({ submissionId: submissionId!, data }).unwrap();
-      toast({ title: 'Success', description: 'Feedback added successfully' });
-      feedbackForm.reset();
-    } catch (error) {
-      toast({ title: 'Error', description: 'Failed to add feedback', variant: 'destructive' });
-    }
-  };
 
   const onApprove = async (data: ApprovalFormData) => {
     try {
@@ -114,7 +93,7 @@ export default function SubmissionReview() {
   if (isLoading) {
     return (
       <Layout>
-        <div className="container mx-auto py-6">
+        <div className="w-full px-6 py-6">
           <p>Loading submission...</p>
         </div>
       </Layout>
@@ -124,7 +103,7 @@ export default function SubmissionReview() {
   if (isError || !submission) {
     return (
       <Layout>
-        <div className="container mx-auto py-6">
+        <div className="w-full px-6 py-6">
           <Card>
             <CardContent className="text-center py-10">
               <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
@@ -139,7 +118,7 @@ export default function SubmissionReview() {
 
   return (
     <Layout>
-      <div className="container mx-auto py-6">
+      <div className="w-full px-6 py-6">
         <div className="flex justify-between items-center mb-6">
           <div className="flex items-center">
             <Link href="/mentor/review-queue">
@@ -356,64 +335,16 @@ export default function SubmissionReview() {
               </CardContent>
             </Card>
 
-            {/* Feedback Section */}
+            {/* Discussion Thread */}
             <Card>
               <CardHeader>
-                <CardTitle>Feedback & Comments</CardTitle>
+                <CardTitle>Discussion</CardTitle>
+                <CardDescription>
+                  Comment on the submission and communicate with the buddy
+                </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
-                {submission.feedback && submission.feedback.length > 0 ? (
-                  <div className="space-y-3">
-                    {submission.feedback.map((fb: any) => (
-                      <div
-                        key={fb.id}
-                        className={`p-4 rounded-lg ${
-                          fb.authorRole === 'mentor' || fb.authorRole === 'manager'
-                            ? 'bg-blue-50 dark:bg-blue-900/20'
-                            : 'bg-gray-50 dark:bg-gray-800'
-                        }`}
-                      >
-                        <div className="flex items-center justify-between mb-2">
-                          <Badge variant={fb.authorRole === 'buddy' ? 'outline' : 'default'}>
-                            {fb.authorRole}
-                          </Badge>
-                          <span className="text-xs text-gray-500">
-                            {new Date(fb.createdAt).toLocaleString()}
-                          </span>
-                        </div>
-                        <p className="text-sm">{fb.message}</p>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-sm text-gray-500">No feedback yet</p>
-                )}
-
-                <Form {...feedbackForm}>
-                  <form onSubmit={feedbackForm.handleSubmit(onAddFeedback)} className="space-y-3">
-                    <FormField
-                      control={feedbackForm.control}
-                      name="message"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Add Comment</FormLabel>
-                          <FormControl>
-                            <Textarea
-                              placeholder="Leave a comment or question..."
-                              className="min-h-[100px]"
-                              {...field}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <Button type="submit" disabled={addingFeedback}>
-                      <MessageSquare className="h-4 w-4 mr-2" />
-                      {addingFeedback ? 'Adding...' : 'Add Comment'}
-                    </Button>
-                  </form>
-                </Form>
+              <CardContent>
+                <FeedbackThread submissionId={submissionId!} />
               </CardContent>
             </Card>
           </div>

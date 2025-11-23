@@ -12,6 +12,7 @@ import {
   useUpdateCurriculumWeekMutation,
   useDeleteCurriculumWeekMutation,
   usePublishCurriculumMutation,
+  useGetWeekTasksQuery,
 } from '@/api/curriculumManagementApi';
 import Layout from '@/components/Layout';
 import { Button } from '@/components/ui/button';
@@ -45,6 +46,48 @@ const weekSchema = z.object({
 
 type CurriculumFormData = z.infer<typeof curriculumSchema>;
 type WeekFormData = z.infer<typeof weekSchema>;
+
+// Component to display tasks for a week
+function WeekTasks({ weekId }: { weekId: string; curriculumId: string }) {
+  const { data: tasks = [], isLoading } = useGetWeekTasksQuery(weekId);
+
+  if (isLoading) {
+    return <p className="text-sm text-muted-foreground">Loading tasks...</p>;
+  }
+
+  if (tasks.length === 0) {
+    return (
+      <p className="text-sm text-muted-foreground italic">
+        No tasks added yet. Click "Manage Tasks" to add tasks.
+      </p>
+    );
+  }
+
+  return (
+    <div className="space-y-2">
+      {tasks.map((task: any, idx: number) => (
+        <div key={task.id} className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
+          <span className="flex-shrink-0 w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-semibold flex items-center justify-center">
+            {idx + 1}
+          </span>
+          <div className="flex-1 min-w-0">
+            <p className="font-medium text-sm text-foreground truncate">{task.title}</p>
+            <div className="flex items-center gap-2 mt-1">
+              {task.difficulty && (
+                <Badge variant={task.difficulty === 'easy' ? 'secondary' : task.difficulty === 'hard' ? 'destructive' : 'default'} className="text-xs">
+                  {task.difficulty}
+                </Badge>
+              )}
+              {task.estimatedHours && (
+                <span className="text-xs text-muted-foreground">{task.estimatedHours}h</span>
+              )}
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
 
 export default function CurriculumBuilder() {
   const [, params] = useRoute('/curriculum-management/:id');
@@ -217,7 +260,7 @@ export default function CurriculumBuilder() {
   if (loadingCurriculum) {
     return (
       <Layout>
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="w-full px-6 py-6">
           <p className="text-muted-foreground">Loading curriculum...</p>
         </div>
       </Layout>
@@ -226,7 +269,7 @@ export default function CurriculumBuilder() {
 
   return (
     <Layout>
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="w-full px-6 py-6">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
           <div className="flex items-center gap-4">
             <Link href="/curriculum-management">
@@ -476,9 +519,7 @@ export default function CurriculumBuilder() {
                                 </Button>
                               </Link>
                             </div>
-                            <p className="text-sm text-gray-500">
-                              Click "Manage Tasks" to add and edit tasks for this week
-                            </p>
+                            <WeekTasks weekId={week.id} curriculumId={curriculumId!} />
                           </div>
                         </div>
                       </AccordionContent>

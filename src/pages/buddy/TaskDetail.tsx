@@ -17,10 +17,12 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from '@/components/ui/form';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ArrowLeft, Play, Send, Plus, Trash2, CheckCircle, Clock, FileText, AlertCircle } from 'lucide-react';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { ArrowLeft, Play, Send, Plus, Trash2, CheckCircle, Clock, FileText, AlertCircle, MessageSquare } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import FeedbackThread from '@/components/FeedbackThread';
 
 const submissionSchema = z.object({
   description: z.string().min(10, 'Description must be at least 10 characters'),
@@ -98,7 +100,7 @@ export default function TaskDetail() {
   if (isLoading) {
     return (
       <Layout>
-        <div className="container mx-auto py-6">
+        <div className="w-full px-6 py-6">
           <p>Loading task details...</p>
         </div>
       </Layout>
@@ -108,7 +110,7 @@ export default function TaskDetail() {
   if (isError || !taskData) {
     return (
       <Layout>
-        <div className="container mx-auto py-6">
+        <div className="w-full px-6 py-6">
           <Card>
             <CardContent className="text-center py-10">
               <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
@@ -147,7 +149,7 @@ export default function TaskDetail() {
 
   return (
     <Layout>
-      <div className="container mx-auto py-6">
+      <div className="w-full px-6 py-6">
         <div className="flex justify-between items-center mb-6">
           <div className="flex items-center">
             <Link href="/buddy/dashboard">
@@ -177,11 +179,166 @@ export default function TaskDetail() {
             </Button>
           )}
 
-          {(assignment.status === 'in_progress' || assignment.status === 'needs_revision') && (
-            <Button onClick={() => setShowSubmissionForm(!showSubmissionForm)}>
-              <Send className="h-4 w-4 mr-2" />
-              {showSubmissionForm ? 'Cancel Submission' : 'Submit Work'}
-            </Button>
+          {(assignment.status === 'in_progress' || assignment.status === 'needs_revision' || assignment.status === 'submitted') && (
+            <Dialog open={showSubmissionForm} onOpenChange={setShowSubmissionForm}>
+              <DialogTrigger asChild>
+                <Button>
+                  <Send className="h-4 w-4 mr-2" />
+                  {assignment.status === 'submitted' ? 'Submit Revision' : 'Submit Work'}
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+                <DialogHeader>
+                  <DialogTitle>Submit Your Work</DialogTitle>
+                  <DialogDescription>
+                    Provide a description and links to your work. Make sure to include all required resources.
+                  </DialogDescription>
+                </DialogHeader>
+                <Form {...form}>
+                  <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                    <FormField
+                      control={form.control}
+                      name="description"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Description *</FormLabel>
+                          <FormControl>
+                            <Textarea
+                              placeholder="Explain what you built and how you approached the task..."
+                              className="min-h-[120px]"
+                              {...field}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="notes"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Notes (Optional)</FormLabel>
+                          <FormControl>
+                            <Textarea
+                              placeholder="Any challenges, questions, or additional notes..."
+                              className="min-h-[80px]"
+                              {...field}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <div className="space-y-4">
+                      <div className="flex justify-between items-center">
+                        <FormLabel>Resources *</FormLabel>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => append({ type: 'hosted_url', label: '', url: '' })}
+                        >
+                          <Plus className="h-4 w-4 mr-1" />
+                          Add Resource
+                        </Button>
+                      </div>
+
+                      {fields.map((field, index) => (
+                        <Card key={field.id} className="p-4">
+                          <div className="space-y-3">
+                            <div className="flex justify-between items-center">
+                              <h4 className="font-semibold text-sm">Resource {index + 1}</h4>
+                              {fields.length > 1 && (
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => remove(index)}
+                                >
+                                  <Trash2 className="h-4 w-4 text-red-500" />
+                                </Button>
+                              )}
+                            </div>
+
+                            <FormField
+                              control={form.control}
+                              name={`resources.${index}.type`}
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Type</FormLabel>
+                                  <Select onValueChange={field.onChange} value={field.value}>
+                                    <FormControl>
+                                      <SelectTrigger>
+                                        <SelectValue placeholder="Select type" />
+                                      </SelectTrigger>
+                                    </FormControl>
+                                    <SelectContent>
+                                      <SelectItem value="github">GitHub Repository</SelectItem>
+                                      <SelectItem value="hosted_url">Live Website</SelectItem>
+                                      <SelectItem value="pdf">PDF Document</SelectItem>
+                                      <SelectItem value="postman">Postman Collection</SelectItem>
+                                      <SelectItem value="figma">Figma Design</SelectItem>
+                                      <SelectItem value="other">Other</SelectItem>
+                                    </SelectContent>
+                                  </Select>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+
+                            <FormField
+                              control={form.control}
+                              name={`resources.${index}.label`}
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Label</FormLabel>
+                                  <FormControl>
+                                    <Input placeholder="e.g., Source Code, Live Demo" {...field} />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+
+                            <FormField
+                              control={form.control}
+                              name={`resources.${index}.url`}
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>URL</FormLabel>
+                                  <FormControl>
+                                    <Input placeholder="https://..." {...field} />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                          </div>
+                        </Card>
+                      ))}
+                    </div>
+
+                    <div className="flex gap-2 pt-4">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="flex-1"
+                        onClick={() => setShowSubmissionForm(false)}
+                      >
+                        Cancel
+                      </Button>
+                      <Button type="submit" disabled={submitting} className="flex-1">
+                        <Send className="h-4 w-4 mr-2" />
+                        {submitting ? 'Submitting...' : 'Submit for Review'}
+                      </Button>
+                    </div>
+                  </form>
+                </Form>
+              </DialogContent>
+            </Dialog>
           )}
         </div>
 
@@ -221,153 +378,6 @@ export default function TaskDetail() {
                     )}
                   </CardContent>
                 </Card>
-
-                {/* Submission Form */}
-                {showSubmissionForm && (
-                  <Card className="mt-4">
-                    <CardHeader>
-                      <CardTitle>Submit Your Work</CardTitle>
-                      <CardDescription>
-                        Provide a description and links to your work
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <Form {...form}>
-                        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                          <FormField
-                            control={form.control}
-                            name="description"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Description</FormLabel>
-                                <FormControl>
-                                  <Textarea
-                                    placeholder="Explain what you built and how..."
-                                    className="min-h-[120px]"
-                                    {...field}
-                                  />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-
-                          <FormField
-                            control={form.control}
-                            name="notes"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Notes (Optional)</FormLabel>
-                                <FormControl>
-                                  <Textarea
-                                    placeholder="Any challenges or questions..."
-                                    className="min-h-[80px]"
-                                    {...field}
-                                  />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-
-                          <div className="space-y-4">
-                            <div className="flex justify-between items-center">
-                              <FormLabel>Resources</FormLabel>
-                              <Button
-                                type="button"
-                                variant="outline"
-                                size="sm"
-                                onClick={() => append({ type: 'hosted_url', label: '', url: '' })}
-                              >
-                                <Plus className="h-4 w-4 mr-1" />
-                                Add Resource
-                              </Button>
-                            </div>
-
-                            {fields.map((field, index) => (
-                              <Card key={field.id} className="p-4">
-                                <div className="space-y-3">
-                                  <div className="flex justify-between items-center">
-                                    <h4 className="font-semibold text-sm">Resource {index + 1}</h4>
-                                    {fields.length > 1 && (
-                                      <Button
-                                        type="button"
-                                        variant="ghost"
-                                        size="sm"
-                                        onClick={() => remove(index)}
-                                      >
-                                        <Trash2 className="h-4 w-4 text-red-500" />
-                                      </Button>
-                                    )}
-                                  </div>
-
-                                  <FormField
-                                    control={form.control}
-                                    name={`resources.${index}.type`}
-                                    render={({ field }) => (
-                                      <FormItem>
-                                        <FormLabel>Type</FormLabel>
-                                        <Select onValueChange={field.onChange} value={field.value}>
-                                          <FormControl>
-                                            <SelectTrigger>
-                                              <SelectValue placeholder="Select type" />
-                                            </SelectTrigger>
-                                          </FormControl>
-                                          <SelectContent>
-                                            <SelectItem value="github">GitHub Repository</SelectItem>
-                                            <SelectItem value="hosted_url">Live Website</SelectItem>
-                                            <SelectItem value="pdf">PDF Document</SelectItem>
-                                            <SelectItem value="postman">Postman Collection</SelectItem>
-                                            <SelectItem value="figma">Figma Design</SelectItem>
-                                            <SelectItem value="other">Other</SelectItem>
-                                          </SelectContent>
-                                        </Select>
-                                        <FormMessage />
-                                      </FormItem>
-                                    )}
-                                  />
-
-                                  <FormField
-                                    control={form.control}
-                                    name={`resources.${index}.label`}
-                                    render={({ field }) => (
-                                      <FormItem>
-                                        <FormLabel>Label</FormLabel>
-                                        <FormControl>
-                                          <Input placeholder="e.g., Source Code, Live Demo" {...field} />
-                                        </FormControl>
-                                        <FormMessage />
-                                      </FormItem>
-                                    )}
-                                  />
-
-                                  <FormField
-                                    control={form.control}
-                                    name={`resources.${index}.url`}
-                                    render={({ field }) => (
-                                      <FormItem>
-                                        <FormLabel>URL</FormLabel>
-                                        <FormControl>
-                                          <Input placeholder="https://..." {...field} />
-                                        </FormControl>
-                                        <FormMessage />
-                                      </FormItem>
-                                    )}
-                                  />
-                                </div>
-                              </Card>
-                            ))}
-                          </div>
-
-                          <Button type="submit" disabled={submitting} className="w-full">
-                            <Send className="h-4 w-4 mr-2" />
-                            {submitting ? 'Submitting...' : 'Submit for Review'}
-                          </Button>
-                        </form>
-                      </Form>
-                    </CardContent>
-                  </Card>
-                )}
               </TabsContent>
 
               <TabsContent value="submissions" className="mt-4">
@@ -438,22 +448,10 @@ export default function TaskDetail() {
                             </div>
                           )}
 
-                          {submission.feedback && submission.feedback.length > 0 && (
-                            <div>
-                              <h4 className="font-semibold mb-2">Feedback</h4>
-                              <div className="space-y-2">
-                                {submission.feedback.map((fb: any) => (
-                                  <div key={fb.id} className="p-3 bg-gray-50 dark:bg-gray-800 rounded">
-                                    <p className="text-sm font-medium mb-1">{fb.authorRole}</p>
-                                    <p className="text-sm">{fb.message}</p>
-                                    <p className="text-xs text-gray-500 mt-1">
-                                      {new Date(fb.createdAt).toLocaleString()}
-                                    </p>
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                          )}
+                          {/* Discussion Thread */}
+                          <div className="border-t pt-4 mt-4">
+                            <FeedbackThread submissionId={submission.id} />
+                          </div>
                         </CardContent>
                       </Card>
                     ))}

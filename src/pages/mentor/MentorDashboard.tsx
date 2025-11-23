@@ -31,9 +31,10 @@ export default function MentorDashboard() {
 
   const mentorId = mentorProfile?.id;
 
-  const { data: queue = [], isLoading: loadingQueue } = useGetMentorReviewQueueQuery(mentorId || '', {
-    skip: !mentorId,
-  });
+  const { data: queue = [], isLoading: loadingQueue } = useGetMentorReviewQueueQuery(
+    { mentorId: mentorId || '' },
+    { skip: !mentorId }
+  );
 
   const { data: allBuddies = [], isLoading: loadingBuddies } = useGetBuddiesQuery();
 
@@ -69,7 +70,7 @@ export default function MentorDashboard() {
   if (!mentorId) {
     return (
       <Layout>
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="w-full px-6 py-6">
           <Card>
             <CardContent className="text-center py-10">
               <p className="text-muted-foreground">You need a mentor profile to access this dashboard.</p>
@@ -189,9 +190,14 @@ export default function MentorDashboard() {
                                       URGENT
                                     </Badge>
                                   )}
-                                  <span className="text-sm text-muted-foreground">
-                                    Buddy Name
+                                  <span className="text-sm font-medium text-foreground">
+                                    {item.buddyDetails?.name || 'Unknown Buddy'}
                                   </span>
+                                  {item.weekInfo && (
+                                    <Badge variant="outline" className="text-xs">
+                                      Week {item.weekInfo.weekNumber}
+                                    </Badge>
+                                  )}
                                 </div>
                                 <h3 className="font-semibold text-foreground mb-1">
                                   {item.taskTemplate?.title || 'Task'}
