@@ -1,10 +1,9 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Link } from 'wouter';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { useGetCurriculumQuery, useCreateCurriculumMutation } from '@/api/curriculumApi';
-import Layout from '@/components/Layout';
+import { useGetCurriculumsQuery, useCreateCurriculumMutation } from '@/api/curriculum/curriculumApi';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -16,10 +15,10 @@ import { Search, Plus, FileText, Edit, Trash2 } from 'lucide-react';
 import { useToast } from '../hooks/use-toast';
 
 const formSchema = z.object({
-  title: z.string().min(3, { message: 'Title must be at least 3 characters' }),
+  name: z.string().min(3, { message: 'Name must be at least 3 characters' }),
   description: z.string().min(10, { message: 'Description must be at least 10 characters' }),
-  domain: z.enum(['frontend', 'backend', 'devops', 'qa', 'hr']),
-  content: z.string().min(20, { message: 'Content must be at least 20 characters' }),
+  domainRole: z.enum(['frontend', 'backend', 'fullstack', 'devops', 'qa', 'hr']),
+  totalWeeks: z.number().min(1, { message: 'Must have at least 1 week' }).max(52, { message: 'Maximum 52 weeks' }),
 });
 
 export default function CurriculumPage() {
@@ -29,8 +28,8 @@ export default function CurriculumPage() {
   });
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   
-  const { data: curriculum = [] as unknown[], isLoading, isError } = useGetCurriculumQuery({
-    domain: filters.domain !== 'all' ? filters.domain : undefined,
+  const { data: curriculum = [], isLoading, isError } = useGetCurriculumsQuery({
+    domainRole: filters.domain !== 'all' ? filters.domain as any : undefined,
     search: filters.search || undefined,
   });
   
@@ -40,10 +39,10 @@ export default function CurriculumPage() {
   const form = useForm({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      title: '',
+      name: '',
       description: '',
-      domain: 'frontend',
-      content: '',
+      domainRole: 'frontend' as const,
+      totalWeeks: 5,
     },
   });
   
@@ -53,10 +52,7 @@ export default function CurriculumPage() {
   
   const handleFormSubmit = async (data: z.infer<typeof formSchema>) => {
     try {
-      await createCurriculum({
-        ...data,
-        createdBy: 'user-1', // This would be the current user's ID in a real app
-      }).unwrap();
+      await createCurriculum(data).unwrap();
       
       toast({
         title: 'Success',
@@ -75,7 +71,6 @@ export default function CurriculumPage() {
   };
   
   return (
-    <Layout>
       <div className="w-full px-6 py-6">
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-3xl font-bold">Curriculum Management</h1>
@@ -99,12 +94,12 @@ export default function CurriculumPage() {
                 <form onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-4">
                   <FormField
                     control={form.control}
-                    name="title"
+                    name="name"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Title</FormLabel>
+                        <FormLabel>Name</FormLabel>
                         <FormControl>
-                          <Input placeholder="Enter curriculum title" {...field} />
+                          <Input placeholder="Enter curriculum name" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -131,7 +126,7 @@ export default function CurriculumPage() {
                   
                   <FormField
                     control={form.control}
-                    name="domain"
+                    name="domainRole"
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Domain</FormLabel>
@@ -144,6 +139,7 @@ export default function CurriculumPage() {
                           <SelectContent>
                             <SelectItem value="frontend">Frontend</SelectItem>
                             <SelectItem value="backend">Backend</SelectItem>
+                            <SelectItem value="fullstack">Fullstack</SelectItem>
                             <SelectItem value="devops">DevOps</SelectItem>
                             <SelectItem value="qa">QA</SelectItem>
                             <SelectItem value="hr">HR</SelectItem>
@@ -153,25 +149,26 @@ export default function CurriculumPage() {
                       </FormItem>
                     )}
                   />
-                  
+
                   <FormField
                     control={form.control}
-                    name="content"
+                    name="totalWeeks"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Content</FormLabel>
+                        <FormLabel>Total Weeks</FormLabel>
                         <FormControl>
-                          <Textarea 
-                            placeholder="Enter curriculum content" 
-                            {...field} 
-                            className="min-h-[200px]"
+                          <Input
+                            type="number"
+                            placeholder="5"
+                            {...field}
+                            onChange={e => field.onChange(parseInt(e.target.value) || 0)}
                           />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
-                  
+
                   <DialogFooter>
                     <Button type="submit" disabled={isCreating}>
                       {isCreating ? 'Creating...' : 'Create Curriculum'}
@@ -234,9 +231,9 @@ export default function CurriculumPage() {
                 <CardHeader className="pb-3">
                   <div className="flex justify-between items-start">
                     <div>
-                      <CardTitle className="text-xl">{item.title}</CardTitle>
+                      <CardTitle className="text-xl">{item.name}</CardTitle>
                       <CardDescription className="mt-1">
-                        {item.domain.charAt(0).toUpperCase() + item.domain.slice(1)}
+                        {item.domainRole.charAt(0).toUpperCase() + item.domainRole.slice(1)}
                       </CardDescription>
                     </div>
                     <div className="flex space-x-2">
@@ -267,6 +264,5 @@ export default function CurriculumPage() {
           </div>
         )}
       </div>
-    </Layout>
   );
 }

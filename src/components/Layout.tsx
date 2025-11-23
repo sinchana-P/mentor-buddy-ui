@@ -7,7 +7,6 @@ import {
   LayoutDashboard,
   Users,
   UserCheck,
-  ClipboardList,
   BookOpen,
   UserCircle,
   Settings,
@@ -35,7 +34,6 @@ const managerNavigation = [
   { name: 'Managers', href: '/managers', icon: Shield, roles: ['manager'] },
   { name: 'Mentors', href: '/mentors', icon: Users, roles: ['manager', 'mentor'] },
   { name: 'Buddies', href: '/buddies', icon: UserCheck, roles: ['manager', 'mentor'] },
-  { name: 'Tasks (Legacy)', href: '/tasks', icon: ClipboardList, roles: ['manager', 'mentor'] },
   { name: 'Curriculum Management', href: '/curriculum-management', icon: GraduationCap, roles: ['manager', 'mentor'] },
   { name: 'Resources', href: '/resources', icon: BookOpen, roles: ['manager', 'mentor'] },
 ];

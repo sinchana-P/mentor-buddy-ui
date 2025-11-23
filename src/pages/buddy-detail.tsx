@@ -3,12 +3,20 @@ import { useParams } from 'wouter';
 import { useSelector } from 'react-redux';
 import {
   useGetBuddiesQuery,
-  useUpdateTaskMutation,
 } from '@/api';
 import {
   useGetBuddyCurriculumQuery,
   useGetBuddyAssignmentsQuery,
 } from '@/api/curriculumManagementApi';
+import {
+  useApproveSubmissionMutation,
+  useRequestRevisionMutation,
+  useGetTaskAssignmentSubmissionsQuery,
+  useGetSubmissionFeedbackQuery,
+  useAddFeedbackMutation,
+  type Submission,
+  type Feedback,
+} from '@/api/submissionApi';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -17,7 +25,7 @@ import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { ArrowLeft, Clock, Edit, MessageSquare } from 'lucide-react';
+import { ArrowLeft, Clock, Edit, MessageSquare, CheckCircle, FileText } from 'lucide-react';
 import { Link } from 'wouter';
 import { useToast } from '@/hooks/use-toast';
 import type { BuddyRO } from '@/api/dto';
@@ -100,7 +108,9 @@ export default function BuddyDetailPage() {
   const [activeWeekTab, setActiveWeekTab] = useState(1);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [expandedTaskId, setExpandedTaskId] = useState<string | null>(null);
+  const [selectedSubmissionId, setSelectedSubmissionId] = useState<string | null>(null);
   const [feedbackText, setFeedbackText] = useState('');
+  const [newCommentText, setNewCommentText] = useState('');
   const { toast } = useToast();
 
   // Get current user from Redux and permissions
@@ -120,8 +130,10 @@ export default function BuddyDetailPage() {
     skip: !id,
   });
 
-  // Task mutations
-  const [updateTaskTrigger] = useUpdateTaskMutation();
+  // Submission mutations
+  const [approveSubmission] = useApproveSubmissionMutation();
+  const [requestRevision] = useRequestRevisionMutation();
+  const [addFeedback] = useAddFeedbackMutation();
 
   // Group assignments by week
   const weeklyAssignments = useMemo(() => {
@@ -170,15 +182,39 @@ export default function BuddyDetailPage() {
   const handleTaskClick = (taskId: string) => {
     setExpandedTaskId(expandedTaskId === taskId ? null : taskId);
     setFeedbackText('');
+    setNewCommentText('');
+    setSelectedSubmissionId(null);
   };
 
-  // Handle approve task
-  const handleApprove = async (assignmentId: string) => {
+  // Handle adding a comment to a submission
+  const handleAddComment = async (submissionId: string) => {
+    if (!newCommentText.trim()) {
+      toast({ title: 'Error', description: 'Please enter a comment.', variant: 'destructive' });
+      return;
+    }
     try {
-      await updateTaskTrigger({
-        id: assignmentId,
-        data: { status: 'approved' }
+      await addFeedback({
+        submissionId,
+        data: {
+          message: newCommentText,
+          feedbackType: 'comment',
+        },
       }).unwrap();
+      toast({ title: 'Success', description: 'Comment added!' });
+      setNewCommentText('');
+    } catch {
+      toast({ title: 'Error', description: 'Failed to add comment.', variant: 'destructive' });
+    }
+  };
+
+  // Handle approve submission
+  const handleApprove = async (submissionId: string) => {
+    if (!submissionId) {
+      toast({ title: 'Error', description: 'No submission found.', variant: 'destructive' });
+      return;
+    }
+    try {
+      await approveSubmission({ id: submissionId }).unwrap();
       toast({ title: 'Success', description: 'Task approved!' });
       setExpandedTaskId(null);
     } catch {
@@ -187,12 +223,17 @@ export default function BuddyDetailPage() {
   };
 
   // Handle request changes
-  const handleRequestChanges = async (assignmentId: string) => {
+  const handleRequestChanges = async (submissionId: string) => {
+    if (!submissionId) {
+      toast({ title: 'Error', description: 'No submission found.', variant: 'destructive' });
+      return;
+    }
+    if (!feedbackText.trim()) {
+      toast({ title: 'Error', description: 'Please provide feedback.', variant: 'destructive' });
+      return;
+    }
     try {
-      await updateTaskTrigger({
-        id: assignmentId,
-        data: { status: 'in_progress', feedback: feedbackText }
-      }).unwrap();
+      await requestRevision({ id: submissionId, message: feedbackText }).unwrap();
       toast({ title: 'Success', description: 'Changes requested.' });
       setExpandedTaskId(null);
       setFeedbackText('');
@@ -230,6 +271,167 @@ export default function BuddyDetailPage() {
   // Calculate overall progress from curriculum data
   const overallProgress = curriculumData?.overallProgress || 0;
   const curriculumName = curriculumData?.curriculum?.name || 'No curriculum assigned';
+
+  // Submission History Component
+  const SubmissionHistory = ({ assignmentId }: { assignmentId: string }) => {
+    const { data: submissions = [], isLoading: loadingSubmissions } = useGetTaskAssignmentSubmissionsQuery(assignmentId, {
+      skip: !assignmentId,
+    });
+
+    if (loadingSubmissions) {
+      return (
+        <div className="text-center py-4">
+          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 mx-auto"></div>
+        </div>
+      );
+    }
+
+    if (submissions.length === 0) {
+      return (
+        <div className="text-center py-6 text-gray-500">
+          <FileText className="h-8 w-8 mx-auto mb-2 text-gray-400" />
+          <p className="text-sm">No submissions yet</p>
+        </div>
+      );
+    }
+
+    const latestSubmission = submissions[submissions.length - 1];
+    const currentSubmission = selectedSubmissionId
+      ? submissions.find(s => s.id === selectedSubmissionId) || latestSubmission
+      : latestSubmission;
+
+    return (
+      <div className="space-y-4">
+        {/* Submission Selector */}
+        {submissions.length > 1 && (
+          <div className="flex items-center gap-2 pb-3 border-b">
+            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Version:</span>
+            <div className="flex gap-2">
+              {submissions.map((submission, idx) => (
+                <button
+                  key={submission.id}
+                  onClick={() => setSelectedSubmissionId(submission.id)}
+                  className={`px-3 py-1 rounded text-sm font-medium transition-colors ${
+                    currentSubmission.id === submission.id
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
+                  }`}
+                >
+                  v{idx + 1}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <SubmissionDetail submission={currentSubmission} />
+      </div>
+    );
+  };
+
+  // Submission Detail with Feedback
+  const SubmissionDetail = ({ submission }: { submission: Submission }) => {
+    const { data: feedback = [] } = useGetSubmissionFeedbackQuery(submission.id);
+
+    return (
+      <div className="space-y-4">
+        {/* Submission Info */}
+        <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-sm font-medium text-blue-900 dark:text-blue-100">
+              Submitted by {buddy.user?.name}
+            </span>
+            <Badge className="bg-blue-600">v{submission.version}</Badge>
+          </div>
+          <p className="text-sm text-gray-700 dark:text-gray-300 mb-2">{submission.description}</p>
+          {submission.notes && (
+            <p className="text-sm text-gray-600 dark:text-gray-400 italic">Note: {submission.notes}</p>
+          )}
+          <div className="flex items-center gap-4 mt-3 text-xs text-gray-600 dark:text-gray-400">
+            <span>Submitted: {new Date(submission.submittedAt).toLocaleDateString()}</span>
+            <Badge variant="outline" className="text-xs">
+              {submission.reviewStatus.replace('_', ' ')}
+            </Badge>
+          </div>
+          {submission.resources && submission.resources.length > 0 && (
+            <div className="mt-3 space-y-1">
+              <span className="text-xs font-medium text-gray-700 dark:text-gray-300">Resources:</span>
+              {submission.resources.map((resource, idx) => (
+                <a
+                  key={idx}
+                  href={resource.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="block text-sm text-blue-600 hover:underline"
+                >
+                  {resource.label}: {resource.url}
+                </a>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Feedback/Conversation Thread */}
+        {feedback.length > 0 && (
+          <div className="space-y-3">
+            <h4 className="font-medium text-sm">Discussion ({feedback.length})</h4>
+            {feedback.map((fb) => (
+              <div key={fb.id} className="flex gap-3">
+                <Avatar className="h-8 w-8 flex-shrink-0">
+                  <AvatarFallback className="bg-slate-200 text-slate-600 text-xs">
+                    {fb.authorRole === 'buddy' ? 'B' : fb.authorRole === 'mentor' ? 'M' : 'MG'}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="flex-1 bg-gray-50 dark:bg-slate-800 rounded-lg p-3">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-sm font-medium capitalize">{fb.authorRole}</span>
+                    <span className="text-xs text-gray-500">
+                      {new Date(fb.createdAt).toLocaleDateString()} {new Date(fb.createdAt).toLocaleTimeString()}
+                    </span>
+                    {fb.feedbackType !== 'comment' && (
+                      <Badge variant="outline" className="text-xs">
+                        {fb.feedbackType.replace('_', ' ')}
+                      </Badge>
+                    )}
+                  </div>
+                  <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{fb.message}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Add Comment Section (for mentors/managers) */}
+        {isMentorOrManager && (
+          <div className="pt-4 border-t">
+            <div className="flex gap-3">
+              <Avatar className="h-8 w-8 flex-shrink-0">
+                <AvatarFallback className="bg-blue-100 text-blue-600 text-xs">
+                  {currentUser?.name?.split(' ').map(n => n[0]).join('') || 'M'}
+                </AvatarFallback>
+              </Avatar>
+              <div className="flex-1">
+                <Textarea
+                  placeholder="Add a comment..."
+                  value={newCommentText}
+                  onChange={(e) => setNewCommentText(e.target.value)}
+                  className="mb-2 min-h-[60px] resize-none"
+                />
+                <div className="flex justify-end gap-2">
+                  <Button size="sm" variant="outline" onClick={() => setNewCommentText('')}>
+                    Cancel
+                  </Button>
+                  <Button size="sm" onClick={() => handleAddComment(submission.id)}>
+                    Post Comment
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-background">
@@ -297,20 +499,61 @@ export default function BuddyDetailPage() {
               <div>
                 {/* Week Tabs - Clean Minimal Design */}
                 <div className="bg-gray-100 dark:bg-slate-800/50 rounded-xl p-1 inline-flex gap-1 mb-6">
-                  {weekNumbers.map((weekNum: number) => (
-                    <button
-                      key={weekNum}
-                      onClick={() => setActiveWeekTab(weekNum)}
-                      className={`px-6 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 ${
-                        activeWeekTab === weekNum
-                          ? 'bg-white dark:bg-slate-700 text-gray-900 dark:text-white shadow-sm'
-                          : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'
-                      }`}
-                    >
-                      Week {weekNum}
-                    </button>
-                  ))}
+                  {weekNumbers.map((weekNum: number) => {
+                    const weekProgressData = curriculumData?.weekProgress?.find((w: any) => w.weekNumber === weekNum);
+                    return (
+                      <button
+                        key={weekNum}
+                        onClick={() => setActiveWeekTab(weekNum)}
+                        className={`px-6 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 ${
+                          activeWeekTab === weekNum
+                            ? 'bg-white dark:bg-slate-700 text-gray-900 dark:text-white shadow-sm'
+                            : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2">
+                          Week {weekNum}
+                          {weekProgressData?.status === 'completed' && (
+                            <CheckCircle className="h-4 w-4 text-green-500" />
+                          )}
+                        </div>
+                      </button>
+                    );
+                  })}
                 </div>
+
+                {/* Week Details for Active Tab */}
+                {curriculumData?.weekProgress?.find((w: any) => w.weekNumber === activeWeekTab) && (
+                  <div className="mb-4 p-4 bg-gray-50 dark:bg-slate-800/50 rounded-lg">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h3 className="font-semibold text-lg mb-1">
+                          {weeklyAssignments[activeWeekTab]?.[0]?.week?.title || `Week ${activeWeekTab}`}
+                        </h3>
+                        {weeklyAssignments[activeWeekTab]?.[0]?.week?.description && (
+                          <p className="text-sm text-gray-600 dark:text-gray-400">
+                            {weeklyAssignments[activeWeekTab][0].week.description}
+                          </p>
+                        )}
+                      </div>
+                      <div className="text-right">
+                        <div className="flex items-center gap-2 mb-1">
+                          <Progress
+                            value={curriculumData?.weekProgress?.find((w: any) => w.weekNumber === activeWeekTab)?.progressPercentage || 0}
+                            className="w-24 h-2"
+                          />
+                          <span className="text-sm font-medium">
+                            {curriculumData?.weekProgress?.find((w: any) => w.weekNumber === activeWeekTab)?.progressPercentage || 0}%
+                          </span>
+                        </div>
+                        <p className="text-xs text-gray-500">
+                          {curriculumData?.weekProgress?.find((w: any) => w.weekNumber === activeWeekTab)?.completedTasks || 0}/
+                          {curriculumData?.weekProgress?.find((w: any) => w.weekNumber === activeWeekTab)?.totalTasks || 0} tasks
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 {/* Tasks for Active Week */}
                 <div className="space-y-4">
@@ -357,77 +600,11 @@ export default function BuddyDetailPage() {
                             </div>
                           </div>
 
-                          {/* Expanded Section - For Under Review tasks */}
-                          {isExpanded && (status === 'under_review' || status === 'submitted') && isMentorOrManager && (
+                          {/* Expanded Section - Show submission history with conversations for mentors/managers */}
+                          {isExpanded && (status === 'submitted' || status === 'under_review' || status === 'completed' || status === 'approved') && isMentorOrManager && (
                             <div className="mt-6 pt-6 border-t border-gray-100 dark:border-gray-800">
-                              {/* Submission Comment */}
-                              <div className="flex gap-3 mb-4">
-                                <Avatar className="h-10 w-10 flex-shrink-0">
-                                  <AvatarFallback className="bg-slate-200 text-slate-600 text-sm">
-                                    {buddy.user?.name?.split(' ').map(n => n[0]).join('') || 'B'}
-                                  </AvatarFallback>
-                                </Avatar>
-                                <div className="flex-1 bg-slate-50 dark:bg-slate-800 rounded-lg p-3">
-                                  <p className="text-sm text-gray-700 dark:text-gray-300">
-                                    {assignment?.submissionNote || "I've submitted my work for review. Let me know if everything looks correct!"}
-                                  </p>
-                                  <p className="text-xs text-muted-foreground mt-1">
-                                    {buddy.user?.name} - {assignment?.submittedAt ? new Date(assignment.submittedAt).toLocaleDateString() : 'Recently'}
-                                  </p>
-                                </div>
-                              </div>
-
-                              {/* Feedback Input */}
-                              <div className="flex gap-3 mb-4">
-                                <Avatar className="h-10 w-10 flex-shrink-0">
-                                  <AvatarFallback className="bg-blue-100 text-blue-600 text-sm">
-                                    {currentUser?.name?.split(' ').map(n => n[0]).join('') || 'M'}
-                                  </AvatarFallback>
-                                </Avatar>
-                                <Textarea
-                                  placeholder="Add feedback..."
-                                  value={feedbackText}
-                                  onChange={(e) => setFeedbackText(e.target.value)}
-                                  className="flex-1 min-h-[60px] resize-none"
-                                />
-                              </div>
-
-                              {/* Action Buttons */}
-                              <div className="flex justify-end gap-3">
-                                <Button
-                                  variant="outline"
-                                  onClick={() => handleRequestChanges(assignment?.id)}
-                                >
-                                  Request Changes
-                                </Button>
-                                <Button
-                                  className="bg-blue-600 hover:bg-blue-700"
-                                  onClick={() => handleApprove(assignment?.id)}
-                                >
-                                  Approve
-                                </Button>
-                              </div>
-                            </div>
-                          )}
-
-                          {/* Expanded Section - For viewing completed/approved submissions */}
-                          {isExpanded && (status === 'completed' || status === 'approved') && (
-                            <div className="mt-6 pt-6 border-t border-gray-100 dark:border-gray-800">
-                              <div className="flex gap-3">
-                                <Avatar className="h-10 w-10 flex-shrink-0">
-                                  <AvatarFallback className="bg-slate-200 text-slate-600 text-sm">
-                                    {buddy.user?.name?.split(' ').map(n => n[0]).join('') || 'B'}
-                                  </AvatarFallback>
-                                </Avatar>
-                                <div className="flex-1 bg-green-50 dark:bg-green-900/20 rounded-lg p-3">
-                                  <p className="text-sm text-gray-700 dark:text-gray-300">
-                                    {assignment?.submissionNote || "Task completed and approved."}
-                                  </p>
-                                  <p className="text-xs text-green-600 mt-1">
-                                    Completed - {assignment?.completedAt ? new Date(assignment.completedAt).toLocaleDateString() : 'Recently'}
-                                  </p>
-                                </div>
-                              </div>
+                              <h4 className="font-medium mb-4">Submission History & Discussion</h4>
+                              <SubmissionHistory assignmentId={assignment?.id} />
                             </div>
                           )}
 
@@ -482,16 +659,16 @@ export default function BuddyDetailPage() {
                   })}
 
                   {(weeklyAssignments[activeWeekTab] || []).length === 0 && (
-                    <div className="text-center py-12 bg-white dark:bg-slate-900 rounded-lg border">
-                      <Clock className="h-10 w-10 text-gray-400 mx-auto mb-3" />
-                      <p className="text-muted-foreground">No tasks in this week</p>
+                    <div className="text-center py-12 bg-gray-50 dark:bg-slate-800/50 rounded-lg">
+                      <FileText className="h-10 w-10 text-gray-400 mx-auto mb-3" />
+                      <p className="text-gray-500">No tasks in this week</p>
                     </div>
                   )}
                 </div>
               </div>
             ) : (
-              <div className="text-center py-12 bg-white dark:bg-slate-900 rounded-lg border">
-                <Clock className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+              <div className="text-center py-12 bg-gray-50 dark:bg-slate-800/50 rounded-lg">
+                <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                 <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">No curriculum assigned</h3>
                 <p className="text-gray-600 dark:text-gray-400">
                   This buddy doesn't have a curriculum assigned yet.

@@ -79,6 +79,58 @@ export interface TaskAssignment {
   week: CurriculumWeek;
 }
 
+export interface BuddySubmissionDetails {
+  id: string;
+  name: string;
+  email: string;
+  avatarUrl?: string | null;
+  domainRole: string;
+  status: string;
+}
+
+export interface SubmissionWithDetails {
+  id: string;
+  taskAssignmentId: string;
+  buddyId: string;
+  version: number;
+  description: string;
+  notes?: string;
+  reviewStatus: string;
+  reviewedBy?: string;
+  reviewedAt?: string;
+  grade?: string;
+  submittedAt: string;
+  createdAt: string;
+  updatedAt: string;
+  resources: any[];
+  feedbackCount: number;
+}
+
+export interface BuddySubmission {
+  assignment: any;
+  buddy: BuddySubmissionDetails | null;
+  submissions: SubmissionWithDetails[];
+  latestSubmission: SubmissionWithDetails | null;
+}
+
+export interface TaskWithSubmissions {
+  taskTemplate: TaskTemplate;
+  buddySubmissions: BuddySubmission[];
+  totalBuddies: number;
+  submittedCount: number;
+  completedCount: number;
+}
+
+export interface WeekWithSubmissions {
+  week: CurriculumWeek;
+  tasks: TaskWithSubmissions[];
+}
+
+export interface CurriculumSubmissionsResponse {
+  curriculumId: string;
+  weeks: WeekWithSubmissions[];
+}
+
 export const curriculumManagementApi = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
     // ═══════════════════════════════════════════════════════════
@@ -246,6 +298,17 @@ export const curriculumManagementApi = apiSlice.injectEndpoints({
         { type: 'TaskAssignment', id: buddyId },
       ],
     }),
+
+    // ═══════════════════════════════════════════════════════════
+    // CURRICULUM SUBMISSIONS (Manager/Mentor view)
+    // ═══════════════════════════════════════════════════════════
+
+    getCurriculumSubmissions: builder.query<CurriculumSubmissionsResponse, string>({
+      query: (curriculumId) => `/api/curriculums/${curriculumId}/submissions`,
+      providesTags: (result, error, curriculumId) => [
+        { type: 'CurriculumSubmissions', id: curriculumId },
+      ],
+    }),
   }),
 });
 
@@ -267,4 +330,5 @@ export const {
   useDeleteTaskTemplateMutation,
   useGetBuddyCurriculumQuery,
   useGetBuddyAssignmentsQuery,
+  useGetCurriculumSubmissionsQuery,
 } = curriculumManagementApi;

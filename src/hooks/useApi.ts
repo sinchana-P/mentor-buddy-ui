@@ -5,7 +5,6 @@ export {
   useGetUsersQuery as useUsers,
   useGetMentorsQuery as useMentors,
   useGetBuddiesQuery as useBuddies,
-  useGetTasksQuery as useTasks,
   useGetResourcesQuery as useResources,
   useGetDashboardStatsQuery as useDashboardStats,
   useGetDashboardActivityQuery as useDashboardActivity,

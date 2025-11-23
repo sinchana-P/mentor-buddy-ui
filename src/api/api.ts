@@ -242,6 +242,8 @@ export const api = createApi({
     "ReviewQueue",
     "MentorDashboard",
     "CurriculumAnalytics",
+    "CurriculumSubmissions",
+    "AssignedBuddies",
   ],
   refetchOnMountOrArgChange: true,
   endpoints: () => ({}),

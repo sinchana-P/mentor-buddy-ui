@@ -22,7 +22,6 @@ import {
   PointerSensor,
   useSensor,
   useSensors,
-  DragEndEvent,
 } from '@dnd-kit/core';
 import {
   arrayMove,
@@ -129,7 +128,7 @@ export default function CurriculumBuilder() {
     }
   }, [curriculum]);
 
-  const handleDragEnd = async (event: DragEndEvent) => {
+  const handleDragEnd = async (event: any) => {
     const { active, over } = event;
 
     if (over && active.id !== over.id) {

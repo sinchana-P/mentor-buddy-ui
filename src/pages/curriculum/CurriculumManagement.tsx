@@ -57,6 +57,7 @@ import {
   FileText,
   Users,
   Clock,
+  ClipboardList,
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 
@@ -331,6 +332,10 @@ export default function CurriculumManagement() {
                       <DropdownMenuItem onClick={() => navigate(`/curriculum/${curriculum.id}/edit`)}>
                         <Edit className="h-4 w-4 mr-2" />
                         Edit
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => navigate(`/curriculum/${curriculum.id}/submissions`)}>
+                        <ClipboardList className="h-4 w-4 mr-2" />
+                        Submissions
                       </DropdownMenuItem>
                       <DropdownMenuItem onClick={() => handleDuplicate(curriculum)}>
                         <Copy className="h-4 w-4 mr-2" />

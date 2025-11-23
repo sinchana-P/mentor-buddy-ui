@@ -14,12 +14,6 @@ import {
   useDeleteBuddyMutation,
 } from '@/api/buddiesApi';
 import {
-  useGetTasksQuery,
-  useCreateTaskMutation,
-  useUpdateTaskMutation,
-  useDeleteTaskMutation,
-} from '@/api/tasksApi';
-import {
   useGetResourcesQuery,
   useCreateResourceMutation,
   useUpdateResourceMutation,
@@ -28,7 +22,6 @@ import {
 import type {
   MentorDTO,
   BuddyDTO,
-  TaskDTO,
   ResourceDTO,
 } from '@/api/dto';
 
@@ -90,34 +83,6 @@ export class MentorBuddyService {
   async deleteBuddyById(id: string) {
     return this.store.dispatch(
       store.getState().mentorBuddyApi.endpoints.deleteBuddy.initiate(id)
-    );
-  }
-
-  // ===================
-  // TASKS
-  // ===================
-  
-  async fetchTasks() {
-    return this.store.dispatch(
-      store.getState().mentorBuddyApi.endpoints.getTasks.initiate({})
-    );
-  }
-
-  async createTask(taskData: TaskDTO) {
-    return this.store.dispatch(
-      store.getState().mentorBuddyApi.endpoints.createTask.initiate(taskData)
-    );
-  }
-
-  async updateTaskById(id: string, taskData: Partial<TaskDTO>) {
-    return this.store.dispatch(
-      store.getState().mentorBuddyApi.endpoints.updateTask.initiate({ id, ...taskData })
-    );
-  }
-
-  async deleteTaskById(id: string) {
-    return this.store.dispatch(
-      store.getState().mentorBuddyApi.endpoints.deleteTask.initiate(id)
     );
   }
 
@@ -194,13 +159,6 @@ export const useMentorBuddyService = () => ({
     useCreateBuddyMutation,
     useUpdateBuddyMutation,
     useDeleteBuddyMutation,
-  },
-  // Task hooks
-  tasks: {
-    useGetTasksQuery,
-    useCreateTaskMutation,
-    useUpdateTaskMutation,
-    useDeleteTaskMutation,
   },
   // Resource hooks
   resources: {

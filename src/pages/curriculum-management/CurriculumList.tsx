@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Search, Plus, FileText, Edit, Trash2, CheckCircle, Clock, Archive, Eye } from 'lucide-react';
+import { Search, Plus, FileText, Edit, Trash2, CheckCircle, Clock, Archive, Eye, ClipboardList } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
 
@@ -231,11 +231,18 @@ export default function CurriculumList() {
                     Updated: {new Date(curriculum.updatedAt).toLocaleDateString()}
                   </span>
 
-                  <div className="flex gap-2 w-full">
+                  <div className="flex gap-2 w-full flex-wrap">
                     <Link href={`/curriculum-management/${curriculum.id}/view`}>
                       <Button variant="outline" size="sm">
                         <Eye className="h-4 w-4 mr-1" />
                         View
+                      </Button>
+                    </Link>
+
+                    <Link href={`/curriculum/${curriculum.id}/submissions`}>
+                      <Button variant="outline" size="sm">
+                        <ClipboardList className="h-4 w-4 mr-1" />
+                        Submissions
                       </Button>
                     </Link>
 

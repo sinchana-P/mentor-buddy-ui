@@ -9,12 +9,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { CheckCircle, Clock, FileText, AlertCircle, Calendar, Target } from 'lucide-react';
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 
 export default function MyCurriculum() {
   const user = useSelector((state: any) => state.auth.user);
   const [buddyProfile, setBuddyProfile] = useState<any>(null);
+  const [activeWeekTab, setActiveWeekTab] = useState(1);
 
   // Fetch all buddies to find current user's buddy profile
   const { data: allBuddies = [] } = useGetBuddiesQuery();
@@ -37,6 +37,46 @@ export default function MyCurriculum() {
     skip: !buddyId,
   });
 
+  // Group assignments by week number - ALWAYS call hooks before any returns
+  const weeklyAssignments = useMemo(() => {
+    if (!assignments.length) return {};
+
+    const grouped: Record<number, any[]> = {};
+    assignments.forEach((assignment: any) => {
+      const weekNumber = assignment.week?.weekNumber || assignment.weekProgress?.weekNumber || 1;
+      if (!grouped[weekNumber]) {
+        grouped[weekNumber] = [];
+      }
+      grouped[weekNumber].push(assignment);
+    });
+
+    // Sort tasks within each week by display order
+    Object.keys(grouped).forEach(week => {
+      grouped[Number(week)].sort((a, b) =>
+        (a.taskTemplate?.displayOrder || 0) - (b.taskTemplate?.displayOrder || 0)
+      );
+    });
+
+    return grouped;
+  }, [assignments]);
+
+  // Get all week numbers for tabs
+  const weekNumbers = useMemo(() => {
+    const weekProgress = curriculumData?.weekProgress;
+    if (weekProgress?.length) {
+      return weekProgress.map((w: any) => w.weekNumber).sort((a: number, b: number) => a - b);
+    }
+    return Object.keys(weeklyAssignments).map(Number).sort((a, b) => a - b);
+  }, [curriculumData?.weekProgress, weeklyAssignments]);
+
+  // Set initial week tab when data loads
+  useEffect(() => {
+    if (weekNumbers.length > 0 && !weekNumbers.includes(activeWeekTab)) {
+      setActiveWeekTab(weekNumbers[0]);
+    }
+  }, [weekNumbers, activeWeekTab]);
+
+  // Early returns AFTER all hooks are called
   if (!buddyId) {
     return (
       <Layout>
@@ -80,16 +120,6 @@ export default function MyCurriculum() {
   }
 
   const { enrollment, curriculum, weekProgress, totalTasks, completedTasks, overallProgress } = curriculumData;
-
-  // Group assignments by week
-  const assignmentsByWeek = assignments.reduce((acc: any, item: any) => {
-    const weekId = item.week?.id;
-    if (!acc[weekId]) {
-      acc[weekId] = [];
-    }
-    acc[weekId].push(item);
-    return acc;
-  }, {});
 
   const getStatusIcon = (status: string) => {
     switch (status) {
@@ -187,106 +217,130 @@ export default function MyCurriculum() {
           </CardContent>
         </Card>
 
-        {/* Weekly Progress */}
+        {/* Weekly Progress with Tabs */}
         <Card>
           <CardHeader>
             <CardTitle>Weekly Progress</CardTitle>
             <CardDescription>All tasks are visible - work at your own pace!</CardDescription>
           </CardHeader>
           <CardContent>
-            <Accordion type="multiple" className="w-full">
-              {weekProgress && weekProgress.length > 0 ? (
-                weekProgress.map((week: any) => {
-                  const weekTasks = assignmentsByWeek[week.curriculumWeekId] || [];
-                  const weekData = weekTasks[0]?.week;
-
-                  return (
-                    <AccordionItem key={week.id} value={week.id}>
-                      <AccordionTrigger className="hover:no-underline">
-                        <div className="flex items-center justify-between w-full pr-4">
-                          <div className="flex items-center gap-3">
-                            <div className="text-left">
-                              <div className="flex items-center gap-2">
-                                <p className="font-semibold">
-                                  Week {week.weekNumber}: {weekData?.title || `Week ${week.weekNumber}`}
-                                </p>
-                                {week.status === 'completed' && (
-                                  <CheckCircle className="h-4 w-4 text-green-500" />
-                                )}
-                              </div>
-                              <p className="text-sm text-gray-500">
-                                {week.completedTasks}/{week.totalTasks} tasks ({week.progressPercentage}%)
-                              </p>
-                            </div>
-                          </div>
-
-                          <div className="flex items-center gap-2">
-                            <Progress value={week.progressPercentage} className="w-24 h-2" />
-                            <span className="text-sm font-medium">{week.progressPercentage}%</span>
-                          </div>
-                        </div>
-                      </AccordionTrigger>
-
-                      <AccordionContent>
-                        <div className="pl-8 pr-4 py-4 space-y-3">
-                          {weekData?.description && (
-                            <p className="text-sm text-gray-600 mb-4">{weekData.description}</p>
-                          )}
-
-                          {weekTasks.length === 0 ? (
-                            <p className="text-sm text-gray-500">No tasks for this week yet.</p>
-                          ) : (
-                            <div className="space-y-2">
-                              {weekTasks.map((item: any) => (
-                                <div
-                                  key={item.assignment.id}
-                                  className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800"
-                                >
-                                  <div className="flex items-center gap-3 flex-1">
-                                    {getStatusIcon(item.assignment.status)}
-                                    <div className="flex-1">
-                                      <p className="font-medium">{item.taskTemplate?.title || 'Untitled Task'}</p>
-                                      <div className="flex items-center gap-2 mt-1">
-                                        {getStatusBadge(item.assignment.status)}
-                                        {item.taskTemplate?.difficulty && (
-                                          <Badge variant="outline" className="text-xs">
-                                            {item.taskTemplate.difficulty}
-                                          </Badge>
-                                        )}
-                                        {item.taskTemplate?.estimatedHours && (
-                                          <span className="text-xs text-gray-500">
-                                            {item.taskTemplate.estimatedHours}h
-                                          </span>
-                                        )}
-                                      </div>
-                                    </div>
-                                  </div>
-
-                                  <Link href={`/buddy/task/${item.assignment.id}`}>
-                                    <Button size="sm" variant="outline">
-                                      {item.assignment.status === 'not_started' ? 'Start Task' : 'View Task'}
-                                    </Button>
-                                  </Link>
-                                </div>
-                              ))}
-                            </div>
+            {weekNumbers.length > 0 ? (
+              <div>
+                {/* Week Tabs - Clean Minimal Design */}
+                <div className="bg-gray-100 dark:bg-slate-800/50 rounded-xl p-1 inline-flex gap-1 mb-6">
+                  {weekNumbers.map((weekNum: number) => {
+                    const weekProgressData = weekProgress?.find((w: any) => w.weekNumber === weekNum);
+                    return (
+                      <button
+                        key={weekNum}
+                        onClick={() => setActiveWeekTab(weekNum)}
+                        className={`px-6 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 ${
+                          activeWeekTab === weekNum
+                            ? 'bg-white dark:bg-slate-700 text-gray-900 dark:text-white shadow-sm'
+                            : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2">
+                          Week {weekNum}
+                          {weekProgressData?.status === 'completed' && (
+                            <CheckCircle className="h-4 w-4 text-green-500" />
                           )}
                         </div>
-                      </AccordionContent>
-                    </AccordionItem>
-                  );
-                })
-              ) : (
-                <p className="text-sm text-gray-500">No week progress data available.</p>
-              )}
-            </Accordion>
+                      </button>
+                    );
+                  })}
+                </div>
 
-            <div className="mt-6 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-              <p className="text-sm text-blue-800 dark:text-blue-200">
-                <strong>Tip:</strong> You can work ahead! All tasks are available now. Suggested pace: Complete
-                current week before moving on.
-              </p>
-            </div>
+                {/* Week Details for Active Tab */}
+                {weekProgress?.find((w: any) => w.weekNumber === activeWeekTab) && (
+                  <div className="mb-4 p-4 bg-gray-50 dark:bg-slate-800/50 rounded-lg">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h3 className="font-semibold text-lg mb-1">
+                          {weeklyAssignments[activeWeekTab]?.[0]?.week?.title || `Week ${activeWeekTab}`}
+                        </h3>
+                        {weeklyAssignments[activeWeekTab]?.[0]?.week?.description && (
+                          <p className="text-sm text-gray-600 dark:text-gray-400">
+                            {weeklyAssignments[activeWeekTab][0].week.description}
+                          </p>
+                        )}
+                      </div>
+                      <div className="text-right">
+                        <div className="flex items-center gap-2 mb-1">
+                          <Progress
+                            value={weekProgress.find((w: any) => w.weekNumber === activeWeekTab)?.progressPercentage || 0}
+                            className="w-24 h-2"
+                          />
+                          <span className="text-sm font-medium">
+                            {weekProgress.find((w: any) => w.weekNumber === activeWeekTab)?.progressPercentage || 0}%
+                          </span>
+                        </div>
+                        <p className="text-xs text-gray-500">
+                          {weekProgress.find((w: any) => w.weekNumber === activeWeekTab)?.completedTasks || 0}/
+                          {weekProgress.find((w: any) => w.weekNumber === activeWeekTab)?.totalTasks || 0} tasks
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Tasks for Active Week */}
+                <div className="space-y-3">
+                  {(weeklyAssignments[activeWeekTab] || []).length === 0 ? (
+                    <div className="text-center py-12 bg-gray-50 dark:bg-slate-800/50 rounded-lg">
+                      <FileText className="h-10 w-10 text-gray-400 mx-auto mb-3" />
+                      <p className="text-gray-500">No tasks in this week</p>
+                    </div>
+                  ) : (
+                    (weeklyAssignments[activeWeekTab] || []).map((item: any) => (
+                      <div
+                        key={item.assignment.id}
+                        className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                      >
+                        <div className="flex items-center gap-3 flex-1">
+                          {getStatusIcon(item.assignment.status)}
+                          <div className="flex-1">
+                            <p className="font-medium">{item.taskTemplate?.title || 'Untitled Task'}</p>
+                            <div className="flex items-center gap-2 mt-1">
+                              {getStatusBadge(item.assignment.status)}
+                              {item.taskTemplate?.difficulty && (
+                                <Badge variant="outline" className="text-xs">
+                                  {item.taskTemplate.difficulty}
+                                </Badge>
+                              )}
+                              {item.taskTemplate?.estimatedHours && (
+                                <span className="text-xs text-gray-500 flex items-center gap-1">
+                                  <Clock className="h-3 w-3" />
+                                  {item.taskTemplate.estimatedHours}h
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+
+                        <Link href={`/buddy/task/${item.assignment.id}`}>
+                          <Button size="sm" variant="outline">
+                            {item.assignment.status === 'not_started' ? 'Start Task' : 'View Task'}
+                          </Button>
+                        </Link>
+                      </div>
+                    ))
+                  )}
+                </div>
+
+                <div className="mt-6 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                  <p className="text-sm text-blue-800 dark:text-blue-200">
+                    <strong>Tip:</strong> You can work ahead! All tasks are available now. Suggested pace: Complete
+                    current week before moving on.
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <div className="text-center py-12">
+                <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                <p className="text-gray-500">No week progress data available.</p>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>

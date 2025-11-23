@@ -498,6 +498,7 @@ export default function MentorsPage() {
                           animate={{ opacity: 1, x: 0 }}
                           transition={{ delay: index * 0.05 }}
                           className="border-b border-white/5 hover:bg-white/5 transition-colors cursor-pointer"
+                          onClick={() => setLocation(`/mentors/${mentor.id}`)}
                         >
                           {/* Name Column with Avatar */}
                           <td className="py-4 px-6">

@@ -11,19 +11,19 @@ import DashboardPage from "@/pages/dashboard";
 import MentorsPage from "@/pages/mentors";
 import ManagersPage from "@/pages/managers";
 import MentorProfilePage from "@/pages/mentor-profile";
-import BuddyTimelinePage from "@/pages/buddy-timeline";
 import BuddiesPage from "@/pages/buddies";
 import BuddyDetailPage from "@/pages/buddy-detail";
-import TasksPage from "@/pages/tasks";
 import SettingsPage from "@/pages/settings";
 import AnalyticsPage from "@/pages/analytics";
 import ResourcesPage from "@/pages/resources";
-import CurriculumPage from "@/pages/curriculum";
 import CurriculumDetailsPage from "@/pages/curriculum-details";
 import CurriculumList from "@/pages/curriculum-management/CurriculumList";
 import CurriculumBuilder from "@/pages/curriculum-management/CurriculumBuilder";
 import CurriculumView from "@/pages/curriculum-management/CurriculumView";
 import TaskManagement from "@/pages/curriculum-management/TaskManagement";
+import CurriculumManagement from "@/pages/curriculum/CurriculumManagement";
+import CurriculumSubmissions from "@/pages/curriculum/CurriculumSubmissions";
+import CurriculumBuilderNew from "@/pages/curriculum/CurriculumBuilder";
 import BuddyDashboard from "@/pages/buddy/BuddyDashboard";
 import MyCurriculum from "@/pages/buddy/MyCurriculum";
 import TaskDetail from "@/pages/buddy/TaskDetail";
@@ -130,21 +130,6 @@ function Router() {
           </ProtectedRoute>
         )} />
 
-        <Route path="/tasks" component={() => (
-          <ProtectedRoute>
-            <Layout>
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-                transition={{ duration: 0.3 }}
-              >
-                <TasksPage />
-              </motion.div>
-            </Layout>
-          </ProtectedRoute>
-        )} />
-
         <Route path="/resources" component={() => (
           <ProtectedRoute>
             <Layout>
@@ -160,18 +145,21 @@ function Router() {
           </ProtectedRoute>
         )} />
 
-        <Route path="/curriculum" component={() => (
+        <Route path="/curriculum/new" component={() => (
           <ProtectedRoute>
-            <Layout>
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-                transition={{ duration: 0.3 }}
-              >
-                <CurriculumPage />
-              </motion.div>
-            </Layout>
+            <CurriculumBuilderNew />
+          </ProtectedRoute>
+        )} />
+
+        <Route path="/curriculum/:id/submissions" component={() => (
+          <ProtectedRoute>
+            <CurriculumSubmissions />
+          </ProtectedRoute>
+        )} />
+
+        <Route path="/curriculum/:id/edit" component={() => (
+          <ProtectedRoute>
+            <CurriculumBuilderNew />
           </ProtectedRoute>
         )} />
 
@@ -230,21 +218,6 @@ function Router() {
                 transition={{ duration: 0.3 }}
               >
                 <MentorProfilePage />
-              </motion.div>
-            </Layout>
-          </ProtectedRoute>
-        )} />
-        
-        <Route path="/buddies/:id" component={() => (
-          <ProtectedRoute>
-            <Layout>
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-                transition={{ duration: 0.3 }}
-              >
-                <BuddyTimelinePage />
               </motion.div>
             </Layout>
           </ProtectedRoute>

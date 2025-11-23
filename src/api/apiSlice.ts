@@ -8,6 +8,5 @@ export * from './authApi';
 export * from './usersApi';
 export * from './mentorsApi';
 export * from './buddiesApi';
-export * from './tasksApi';
 export * from './resourcesApi';
 export * from './dashboardApi';
