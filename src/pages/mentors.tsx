@@ -40,8 +40,11 @@ export default function MentorsPage() {
   const { toast } = useToast();
   const [, setLocation] = useLocation();
 
-  // Get permissions
+  // Get permissions and user role
   const { canCreateMentor, canEditMentor, canDeleteMentor } = usePermissions();
+  const user = useSelector((state: RootState) => state.auth.user);
+  const userRole = user?.role;
+  const canViewDetails = userRole === 'manager' || userRole === 'mentor';
 
   // Following your reference pattern: useSelector to read from store (commented out unused vars)
   // const mentorsFromStore = useSelector((state: RootState) => state.mentors.mentors);
@@ -540,13 +543,15 @@ export default function MentorsPage() {
                           {/* Actions Column */}
                           <td className="py-4 px-6">
                             <div className="flex items-center justify-end gap-2">
-                              <button
-                                onClick={() => setLocation(`/mentors/${mentor.id}`)}
-                                className="p-2 rounded-lg bg-white/5 hover:bg-white/10 transition-colors"
-                                title="View Details"
-                              >
-                                <Eye className="w-4 h-4 text-white/70" />
-                              </button>
+                              {canViewDetails && (
+                                <button
+                                  onClick={() => setLocation(`/mentors/${mentor.id}`)}
+                                  className="p-2 rounded-lg bg-white/5 hover:bg-white/10 transition-colors"
+                                  title="View Details"
+                                >
+                                  <Eye className="w-4 h-4 text-white/70" />
+                                </button>
+                              )}
                               {canEditMentor && (
                                 <button
                                   onClick={() => setLocation(`/mentors/${mentor.id}/edit`)}
@@ -677,6 +682,7 @@ export default function MentorsPage() {
                     mentor={mentor}
                     canEdit={canEditMentor}
                     canDelete={canDeleteMentor}
+                    canViewDetails={canViewDetails}
                   />
                 </motion.div>
               )) : (

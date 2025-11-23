@@ -78,6 +78,9 @@ export default function BuddiesPage() {
   // Get permissions
   const { hasPermission, canCreateBuddy, canDeleteBuddy, role, userId } = usePermissions();
 
+  // Buddies can only see list view, not details - managers and mentors can view details
+  const canViewDetails = role === 'manager' || role === 'mentor';
+
   // ✅ RTK Query hooks for API operations (following your exact reference pattern)
   const { 
     data: buddies = [], 
@@ -695,8 +698,8 @@ export default function BuddiesPage() {
                         initial={{ opacity: 0, x: -20 }}
                         animate={{ opacity: 1, x: 0 }}
                         transition={{ delay: index * 0.05 }}
-                        className="border-b border-white/5 hover:bg-white/5 transition-colors cursor-pointer"
-                        onClick={() => window.location.href = `/buddies/${buddy.id}`}
+                        className={`border-b border-white/5 hover:bg-white/5 transition-colors ${canViewDetails ? 'cursor-pointer' : ''}`}
+                        onClick={() => canViewDetails && (window.location.href = `/buddies/${buddy.id}`)}
                       >
                         {/* Name Column */}
                         <td className="py-4 px-6">
@@ -769,14 +772,16 @@ export default function BuddiesPage() {
                         {/* Action Column */}
                         <td className="py-4 px-6">
                           <div className="flex items-center justify-end gap-2">
-                            <Link href={`/buddies/${buddy.id}`}>
-                              <button
-                                className="p-2 rounded-lg bg-white/5 hover:bg-white/10 transition-colors"
-                                title="View Details"
-                              >
-                                <Eye className="w-4 h-4 text-white/70" />
-                              </button>
-                            </Link>
+                            {canViewDetails && (
+                              <Link href={`/buddies/${buddy.id}`}>
+                                <button
+                                  className="p-2 rounded-lg bg-white/5 hover:bg-white/10 transition-colors"
+                                  title="View Details"
+                                >
+                                  <Eye className="w-4 h-4 text-white/70" />
+                                </button>
+                              </Link>
+                            )}
                             <button
                               className={`p-2 rounded-lg transition-colors ${
                                 canEditBuddy(buddy)
@@ -894,9 +899,9 @@ export default function BuddiesPage() {
                 className="hover-lift h-full"
               >
                 <div
-                  className="premium-card cursor-pointer group relative h-full flex flex-col"
+                  className={`premium-card group relative h-full flex flex-col ${canViewDetails ? 'cursor-pointer' : ''}`}
                   style={{ minHeight: '260px', maxHeight: '260px' }}
-                  onClick={() => window.location.href = `/buddies/${buddy.id}`}
+                  onClick={() => canViewDetails && (window.location.href = `/buddies/${buddy.id}`)}
                 >
                   {/* Action buttons - Top right, appear on hover */}
                   <div className="absolute top-3 right-3 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10">

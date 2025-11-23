@@ -19,6 +19,7 @@ interface MentorCardProps {
   mentor: MentorRO;
   canEdit?: boolean;
   canDelete?: boolean;
+  canViewDetails?: boolean;
 }
 
 const mentorFormSchema = z.object({
@@ -29,7 +30,7 @@ const mentorFormSchema = z.object({
   isActive: z.boolean().optional(),
 });
 
-export default function MentorCard({ mentor, canEdit = true, canDelete = true }: MentorCardProps) {
+export default function MentorCard({ mentor, canEdit = true, canDelete = true, canViewDetails = true }: MentorCardProps) {
   const [, setLocation] = useLocation();
   const [isMessageModalOpen, setIsMessageModalOpen] = useState(false);
   const { toast } = useToast();
@@ -110,14 +111,16 @@ export default function MentorCard({ mentor, canEdit = true, canDelete = true }:
       className="h-full" // Ensure full height for flex parent
     >
       <div
-        className="premium-card cursor-pointer h-full flex flex-col group relative" // Added group and relative
+        className={`premium-card h-full flex flex-col group relative ${canViewDetails ? 'cursor-pointer' : ''}`}
         onClick={(e) => {
           // Don't navigate if clicking on action buttons or if modal is open
           if (isEditOpen || isDeleteOpen || isMessageModalOpen) {
             e.stopPropagation();
             return;
           }
-          handleClick();
+          if (canViewDetails) {
+            handleClick();
+          }
         }}
         style={{ minHeight: '320px', maxHeight: '320px' }} // Fixed card dimensions
       >

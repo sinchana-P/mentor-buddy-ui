@@ -33,7 +33,7 @@ const buddyBaseNavigation = [
 // Role-specific navigation items
 const managerNavigation = [
   { name: 'Managers', href: '/managers', icon: Shield, roles: ['manager'] },
-  { name: 'Mentors', href: '/mentors', icon: Users, roles: ['manager'] },
+  { name: 'Mentors', href: '/mentors', icon: Users, roles: ['manager', 'mentor'] },
   { name: 'Buddies', href: '/buddies', icon: UserCheck, roles: ['manager', 'mentor'] },
   { name: 'Tasks (Legacy)', href: '/tasks', icon: ClipboardList, roles: ['manager', 'mentor'] },
   { name: 'Curriculum Management', href: '/curriculum-management', icon: GraduationCap, roles: ['manager', 'mentor'] },
@@ -46,6 +46,8 @@ const mentorNavigation = [
 
 const buddyNavigation = [
   { name: 'My Curriculum', href: '/buddy/curriculum', icon: GraduationCap, roles: ['buddy'] },
+  { name: 'Mentors', href: '/mentors', icon: Users, roles: ['buddy'] },
+  { name: 'Buddies', href: '/buddies', icon: UserCheck, roles: ['buddy'] },
   { name: 'Resources', href: '/resources', icon: BookOpen, roles: ['buddy'] },
 ];
 

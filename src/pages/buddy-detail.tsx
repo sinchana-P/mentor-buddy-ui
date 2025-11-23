@@ -73,22 +73,24 @@ const TimeIndicator = ({ status, dueDate }: { status: string; dueDate?: string }
   return null;
 };
 
-// Action button based on status
-const getActionButton = (status: string, isMentorOrManager: boolean) => {
+// Action button based on status and permissions
+const getActionButton = (status: string, isMentorOrManager: boolean, isOwnProfile: boolean) => {
   switch (status) {
     case 'completed':
     case 'approved':
-      return { label: 'View Submission', variant: 'outline' as const };
+      return { label: 'View Submission', variant: 'outline' as const, show: true };
     case 'under_review':
     case 'submitted':
       return isMentorOrManager
-        ? { label: 'Review Submission', variant: 'default' as const }
-        : { label: 'View Submission', variant: 'outline' as const };
+        ? { label: 'Review Submission', variant: 'default' as const, show: true }
+        : { label: 'View Submission', variant: 'outline' as const, show: true };
     case 'in_progress':
-      return { label: 'Continue Task', variant: 'default' as const };
+      // Only the actual buddy can continue their own task
+      return { label: 'Continue Task', variant: 'default' as const, show: isOwnProfile };
     case 'not_started':
     default:
-      return { label: 'Start Task', variant: 'default' as const };
+      // Only the actual buddy can start their own task
+      return { label: 'Start Task', variant: 'default' as const, show: isOwnProfile };
   }
 };
 
@@ -317,7 +319,7 @@ export default function BuddyDetailPage() {
                     const assignment = item.assignment;
                     const status = assignment?.status || 'not_started';
                     const isExpanded = expandedTaskId === (assignment?.id || task?.id);
-                    const actionBtn = getActionButton(status, isMentorOrManager);
+                    const actionBtn = getActionButton(status, isMentorOrManager, isOwnProfile);
 
                     return (
                       <Card
@@ -342,14 +344,16 @@ export default function BuddyDetailPage() {
                                 <StatusIndicator status={status} />
                                 <TimeIndicator status={status} dueDate={assignment?.dueDate} />
                               </div>
-                              <Button
-                                variant={actionBtn.variant}
-                                size="sm"
-                                onClick={() => handleTaskClick(assignment?.id || task?.id)}
-                                className={actionBtn.variant === 'default' ? 'bg-blue-600 hover:bg-blue-700' : ''}
-                              >
-                                {actionBtn.label}
-                              </Button>
+                              {actionBtn.show && (
+                                <Button
+                                  variant={actionBtn.variant}
+                                  size="sm"
+                                  onClick={() => handleTaskClick(assignment?.id || task?.id)}
+                                  className={actionBtn.variant === 'default' ? 'bg-blue-600 hover:bg-blue-700' : ''}
+                                >
+                                  {actionBtn.label}
+                                </Button>
+                              )}
                             </div>
                           </div>
 
