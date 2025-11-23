@@ -30,7 +30,6 @@ import {
   useDeleteBuddyMutation,
   useGetMentorsQuery,
 } from '@/api';
-import { useGetTopicsQuery } from '@/api/topicsApi';
 import { useGetAllCurriculumsQuery } from '@/api/curriculumManagementApi';
 
 // Import EditBuddyModal
@@ -50,16 +49,6 @@ const buddyFormSchema = z.object({
   curriculumId: z.string().optional()
 });
 
-// Topics by domain role
-const DOMAIN_TOPICS: Record<string, string[]> = {
-  frontend: ['React Fundamentals', 'TypeScript Basics', 'CSS Styling', 'JavaScript ES6+', 'State Management', 'HTML Fundamentals', 'React Components'],
-  backend: ['Node.js Basics', 'Express Framework', 'Database Design', 'API Development', 'Authentication', 'Server Deployment'],
-  fullstack: ['Frontend Basics', 'Backend Basics', 'Full Stack Architecture', 'API Integration', 'Database Management', 'Deployment'],
-  devops: ['CI/CD Pipelines', 'Docker', 'Kubernetes', 'Cloud Platforms', 'Infrastructure as Code', 'Monitoring'],
-  qa: ['Test Planning', 'Manual Testing', 'Automation Testing', 'Bug Tracking', 'Test Cases', 'Quality Metrics'],
-  hr: ['Recruitment', 'Onboarding', 'Employee Relations', 'Performance Management', 'HR Policies', 'Training']
-};
-
 export default function BuddiesPage() {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
@@ -70,7 +59,6 @@ export default function BuddiesPage() {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [buddyToDelete, setBuddyToDelete] = useState<BuddyRO | null>(null);
-  const [selectedTopicIds, setSelectedTopicIds] = useState<string[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10); // Items per page for table view
   const { toast } = useToast();
@@ -113,14 +101,8 @@ export default function BuddiesPage() {
     }
   });
 
-  // Fetch topics for the selected domain role
-  const selectedDomain = buddyForm.watch('domainRole');
-  const { data: availableTopics = [] } = useGetTopicsQuery(
-    { domainRole: selectedDomain },
-    { skip: !selectedDomain }
-  );
-
   // Fetch published curriculums for the selected domain role
+  const selectedDomain = buddyForm.watch('domainRole');
   const { data: availableCurriculums = [], isLoading: loadingCurriculums } = useGetAllCurriculumsQuery(
     { domainRole: selectedDomain, status: 'published' },
     { skip: !selectedDomain }
@@ -139,14 +121,6 @@ export default function BuddiesPage() {
     }
   }, [availableCurriculums, selectedDomain, isCreateDialogOpen]);
 
-  // Auto-select all topics when domain changes or topics load
-  React.useEffect(() => {
-    if (availableTopics.length > 0) {
-      const allTopicIds = availableTopics.map(t => t.id);
-      setSelectedTopicIds(allTopicIds);
-    }
-  }, [availableTopics]);
-
   // Reset to page 1 when filters change
   React.useEffect(() => {
     setCurrentPage(1);
@@ -155,22 +129,19 @@ export default function BuddiesPage() {
   // ✅ Following your exact handleSubmit pattern
   const handleCreateBuddy = async (data: z.infer<typeof buddyFormSchema>) => {
     try {
-      // Pass selected topic IDs, assignedMentorId, and curriculumId to backend
       await createBuddyTrigger({
         name: data.name,
         email: data.email,
         domainRole: data.domainRole,
         password: data.password,
-        assignedMentorId: data.assignedMentorId || undefined, // Pass assigned mentor ID (optional)
-        topicIds: selectedTopicIds, // Pass selected topic IDs
-        curriculumId: data.curriculumId || undefined // Pass selected curriculum ID
+        assignedMentorId: data.assignedMentorId || undefined,
+        curriculumId: data.curriculumId || undefined
       }).unwrap();
 
       // RTK Query auto-updates cache, no manual dispatch needed
 
       setIsCreateDialogOpen(false);
       buddyForm.reset();
-      setSelectedTopicIds([]); // Reset topics
 
       toast({
         title: 'Success',
@@ -385,17 +356,17 @@ export default function BuddiesPage() {
                 </SelectContent>
               </Select>
 
-              <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-                <DialogTrigger asChild>
-                  <button
-                    className={`btn-gradient hover-lift flex items-center gap-2 ${!canCreateBuddy ? 'opacity-50 cursor-not-allowed' : ''}`}
-                    disabled={!canCreateBuddy}
-                    title={!canCreateBuddy ? 'You do not have permission to create buddies' : 'Add new buddy'}
-                  >
-                    <UserPlus className="h-4 w-4" />
-                    Add Buddy
-                  </button>
-                </DialogTrigger>
+              {canCreateBuddy && (
+                <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+                  <DialogTrigger asChild>
+                    <button
+                      className="btn-gradient hover-lift flex items-center gap-2"
+                      title="Add new buddy"
+                    >
+                      <UserPlus className="h-4 w-4" />
+                      Add Buddy
+                    </button>
+                  </DialogTrigger>
               
               <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
@@ -548,61 +519,6 @@ export default function BuddiesPage() {
                       )}
                     />
 
-                    {/* Topics Selection */}
-                    <div className="space-y-2">
-                      <FormLabel className="form-label">Learning Topics (Optional)</FormLabel>
-                      <p className="text-xs text-white/50 mb-2">
-                        Select topics for this buddy's learning path. All topics start unchecked and can be tracked in the Progress tab.
-                      </p>
-                      <div className="max-h-48 overflow-y-auto space-y-2 border border-white/10 rounded-lg p-3 bg-white/5">
-                        {availableTopics.length > 0 ? (
-                          availableTopics.map((topic) => (
-                            <div key={topic.id} className="flex items-center space-x-2">
-                              <input
-                                type="checkbox"
-                                id={`topic-${topic.id}`}
-                                className="w-4 h-4 rounded border-white/20 bg-white/10 text-blue-600 focus:ring-2 focus:ring-blue-500 cursor-pointer"
-                                checked={selectedTopicIds.includes(topic.id)}
-                                onChange={(e) => {
-                                  if (e.target.checked) {
-                                    setSelectedTopicIds([...selectedTopicIds, topic.id]);
-                                  } else {
-                                    setSelectedTopicIds(selectedTopicIds.filter(id => id !== topic.id));
-                                  }
-                                }}
-                              />
-                              <label htmlFor={`topic-${topic.id}`} className="text-sm text-white/80 cursor-pointer flex-1">
-                                {topic.name}
-                              </label>
-                              <span className="text-xs text-white/40">{topic.category}</span>
-                            </div>
-                          ))
-                        ) : (
-                          <p className="text-sm text-white/50 text-center py-4">
-                            Loading topics for {selectedDomain}...
-                          </p>
-                        )}
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <p className="text-xs text-white/40">
-                          {selectedTopicIds.length} of {availableTopics.length} topics selected
-                        </p>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            if (selectedTopicIds.length === availableTopics.length) {
-                              setSelectedTopicIds([]);
-                            } else {
-                              setSelectedTopicIds(availableTopics.map(t => t.id));
-                            }
-                          }}
-                          className="text-xs text-blue-400 hover:text-blue-300"
-                        >
-                          {selectedTopicIds.length === availableTopics.length ? 'Deselect All' : 'Select All'}
-                        </button>
-                      </div>
-                    </div>
-
                     <div className="flex justify-end space-x-3 pt-6">
                       <button
                         type="button"
@@ -622,7 +538,8 @@ export default function BuddiesPage() {
                   </form>
                 </Form>
               </DialogContent>
-            </Dialog>
+                </Dialog>
+              )}
             </div>
           </div>
         </motion.div>
@@ -679,6 +596,9 @@ export default function BuddiesPage() {
                   <thead>
                     <tr className="border-b border-white/10">
                       <th className="text-left py-4 px-6 text-sm font-semibold text-white/70 uppercase tracking-wider">Name</th>
+                      <th className="text-left py-4 px-6 text-sm font-semibold text-white/70 uppercase tracking-wider">Domain</th>
+                      <th className="text-left py-4 px-6 text-sm font-semibold text-white/70 uppercase tracking-wider">Mentor</th>
+                      <th className="text-left py-4 px-6 text-sm font-semibold text-white/70 uppercase tracking-wider">Days</th>
                       <th className="text-left py-4 px-6 text-sm font-semibold text-white/70 uppercase tracking-wider">Progress</th>
                       <th className="text-left py-4 px-6 text-sm font-semibold text-white/70 uppercase tracking-wider">Alerts</th>
                       <th className="text-right py-4 px-6 text-sm font-semibold text-white/70 uppercase tracking-wider">Action</th>
@@ -718,8 +638,52 @@ export default function BuddiesPage() {
                             </div>
                             <div>
                               <p className="font-semibold text-white">{buddy.user?.name || buddy.name || 'Unknown'}</p>
-                              <p className="text-sm text-white/60">{buddy.domainRole || 'Not assigned'}</p>
+                              <p className="text-sm text-white/60">{buddy.user?.email || buddy.email}</p>
                             </div>
+                          </div>
+                        </td>
+
+                        {/* Domain Column */}
+                        <td className="py-4 px-6">
+                          {(() => {
+                            const domain = buddy.user?.domainRole || buddy.domainRole;
+                            return (
+                              <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium capitalize ${
+                                domain === 'frontend' ? 'bg-blue-500/10 text-blue-400' :
+                                domain === 'backend' ? 'bg-purple-500/10 text-purple-400' :
+                                domain === 'fullstack' ? 'bg-indigo-500/10 text-indigo-400' :
+                                domain === 'devops' ? 'bg-orange-500/10 text-orange-400' :
+                                domain === 'qa' ? 'bg-pink-500/10 text-pink-400' :
+                                domain === 'hr' ? 'bg-teal-500/10 text-teal-400' :
+                                'bg-white/10 text-white/60'
+                              }`}>
+                                {domain || 'Not assigned'}
+                              </span>
+                            );
+                          })()}
+                        </td>
+
+                        {/* Mentor Column */}
+                        <td className="py-4 px-6">
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm text-white">
+                              {buddy.mentor?.user?.name || buddy.mentorName || 'Not assigned'}
+                            </span>
+                          </div>
+                        </td>
+
+                        {/* Days in Company Column */}
+                        <td className="py-4 px-6">
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm text-white font-medium">
+                              {(() => {
+                                const createdDate = new Date(buddy.createdAt || buddy.joinDate);
+                                const today = new Date();
+                                const diffTime = Math.abs(today.getTime() - createdDate.getTime());
+                                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                                return diffDays;
+                              })()} days
+                            </span>
                           </div>
                         </td>
 
@@ -727,20 +691,33 @@ export default function BuddiesPage() {
                         <td className="py-4 px-6">
                           <div className="flex items-center gap-3">
                             <div className="flex-1 max-w-xs">
-                              <div className="flex justify-between items-center mb-1">
-                                <span className="text-sm font-medium text-white">{buddy.progress || 0}%</span>
-                              </div>
-                              <div className="w-full h-2 bg-white/10 rounded-full overflow-hidden">
-                                <div
-                                  className={`h-full rounded-full transition-all duration-500 ${
-                                    (buddy.progress || 0) === 100 ? 'bg-gradient-to-r from-green-400 to-emerald-500' :
-                                    (buddy.progress || 0) >= 75 ? 'bg-gradient-to-r from-blue-400 to-blue-500' :
-                                    (buddy.progress || 0) >= 25 ? 'bg-gradient-to-r from-yellow-400 to-orange-500' :
-                                    'bg-gradient-to-r from-red-400 to-red-500'
-                                  }`}
-                                  style={{ width: `${buddy.progress || 0}%` }}
-                                ></div>
-                              </div>
+                              {(() => {
+                                // Calculate progress from tasks if progress field is not available or is 0
+                                const progressValue = buddy.progress !== undefined && buddy.progress !== null && buddy.progress > 0
+                                  ? buddy.progress
+                                  : buddy.stats?.totalTasks && buddy.stats.totalTasks > 0
+                                    ? Math.round((buddy.stats.completedTasks / buddy.stats.totalTasks) * 100)
+                                    : 0;
+
+                                return (
+                                  <>
+                                    <div className="flex justify-between items-center mb-1">
+                                      <span className="text-sm font-medium text-white">{progressValue.toFixed(1)}%</span>
+                                    </div>
+                                    <div className="w-full h-2 bg-white/10 rounded-full overflow-hidden">
+                                      <div
+                                        className={`h-full rounded-full transition-all duration-500 ${
+                                          progressValue === 100 ? 'bg-gradient-to-r from-green-400 to-emerald-500' :
+                                          progressValue >= 75 ? 'bg-gradient-to-r from-blue-400 to-blue-500' :
+                                          progressValue >= 25 ? 'bg-gradient-to-r from-yellow-400 to-orange-500' :
+                                          'bg-gradient-to-r from-red-400 to-red-500'
+                                        }`}
+                                        style={{ width: `${progressValue}%` }}
+                                      ></div>
+                                    </div>
+                                  </>
+                                );
+                              })()}
                             </div>
                           </div>
                         </td>
@@ -748,24 +725,47 @@ export default function BuddiesPage() {
                         {/* Alerts Column */}
                         <td className="py-4 px-6">
                           <div className="flex items-center gap-2">
-                            {(buddy.progress || 0) === 100 ? (
-                              <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-green-500/10 text-green-400">
-                                Completed
-                              </span>
-                            ) : (buddy.progress || 0) >= 50 ? (
-                              <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-blue-500/10 text-blue-400">
-                                On Track
-                              </span>
-                            ) : (buddy.progress || 0) >= 25 ? (
-                              <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-yellow-500/10 text-yellow-400">
-                                Needs Attention
-                              </span>
-                            ) : (
-                              <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-red-500/10 text-red-400">
-                                <AlertTriangle className="w-3 h-3 mr-1" />
-                                At Risk
-                              </span>
-                            )}
+                            {(() => {
+                              const progressValue = buddy.progress !== undefined && buddy.progress !== null && buddy.progress > 0
+                                ? buddy.progress
+                                : buddy.stats?.totalTasks && buddy.stats.totalTasks > 0
+                                  ? Math.round((buddy.stats.completedTasks / buddy.stats.totalTasks) * 100)
+                                  : 0;
+
+                              if (progressValue === 100) {
+                                return (
+                                  <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-green-500/10 text-green-400">
+                                    Completed
+                                  </span>
+                                );
+                              } else if (progressValue >= 50) {
+                                return (
+                                  <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-blue-500/10 text-blue-400">
+                                    On Track
+                                  </span>
+                                );
+                              } else if (progressValue >= 25) {
+                                return (
+                                  <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-yellow-500/10 text-yellow-400">
+                                    Needs Attention
+                                  </span>
+                                );
+                              } else if (progressValue >= 5) {
+                                return (
+                                  <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-orange-500/10 text-orange-400">
+                                    Just Started
+                                  </span>
+                                );
+                              } 
+                              else {
+                                return (
+                                  <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-red-500/10 text-red-400">
+                                    <AlertTriangle className="w-3 h-3 mr-1" />
+                                    At Risk
+                                  </span>
+                                );
+                              }
+                            })()}
                           </div>
                         </td>
 
@@ -782,30 +782,24 @@ export default function BuddiesPage() {
                                 </button>
                               </Link>
                             )}
-                            <button
-                              className={`p-2 rounded-lg transition-colors ${
-                                canEditBuddy(buddy)
-                                  ? 'bg-white/5 hover:bg-white/10 text-blue-400'
-                                  : 'bg-white/5 text-white/30 cursor-not-allowed'
-                              }`}
-                              onClick={(e) => openEditModal(buddy, e)}
-                              disabled={!canEditBuddy(buddy)}
-                              title={canEditBuddy(buddy) ? 'Edit buddy' : 'You cannot edit this buddy'}
-                            >
-                              <Edit className="h-4 w-4" />
-                            </button>
-                            <button
-                              className={`p-2 rounded-lg transition-colors ${
-                                canDeleteSpecificBuddy(buddy)
-                                  ? 'bg-white/5 hover:bg-red-500/20 text-red-400'
-                                  : 'bg-white/5 text-white/30 cursor-not-allowed'
-                              }`}
-                              onClick={(e) => openDeleteDialog(buddy, e)}
-                              disabled={!canDeleteSpecificBuddy(buddy)}
-                              title={canDeleteSpecificBuddy(buddy) ? 'Delete buddy' : 'You cannot delete this buddy'}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </button>
+                            {canEditBuddy(buddy) && (
+                              <button
+                                className="p-2 rounded-lg transition-colors bg-white/5 hover:bg-white/10 text-blue-400"
+                                onClick={(e) => openEditModal(buddy, e)}
+                                title="Edit buddy"
+                              >
+                                <Edit className="h-4 w-4" />
+                              </button>
+                            )}
+                            {canDeleteSpecificBuddy(buddy) && (
+                              <button
+                                className="p-2 rounded-lg transition-colors bg-white/5 hover:bg-red-500/20 text-red-400"
+                                onClick={(e) => openDeleteDialog(buddy, e)}
+                                title="Delete buddy"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </button>
+                            )}
                           </div>
                         </td>
                       </motion.tr>
@@ -905,30 +899,24 @@ export default function BuddiesPage() {
                 >
                   {/* Action buttons - Top right, appear on hover */}
                   <div className="absolute top-3 right-3 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10">
-                    <button
-                      className={`p-1.5 rounded-md transition-colors ${
-                        canEditBuddy(buddy)
-                          ? 'bg-white/10 hover:bg-white/20 text-white/60 hover:text-white cursor-pointer'
-                          : 'bg-white/5 text-white/30 cursor-not-allowed opacity-50'
-                      }`}
-                      onClick={(e) => openEditModal(buddy, e)}
-                      disabled={!canEditBuddy(buddy)}
-                      title={canEditBuddy(buddy) ? 'Edit buddy' : 'You cannot edit this buddy'}
-                    >
-                      <Edit className="h-3.5 w-3.5" />
-                    </button>
-                    <button
-                      className={`p-1.5 rounded-md transition-colors ${
-                        canDeleteSpecificBuddy(buddy)
-                          ? 'bg-white/5 hover:bg-red-500/20 text-white/60 hover:text-red-300 cursor-pointer'
-                          : 'bg-white/5 text-white/30 cursor-not-allowed opacity-50'
-                      }`}
-                      onClick={(e) => openDeleteDialog(buddy, e)}
-                      disabled={!canDeleteSpecificBuddy(buddy)}
-                      title={canDeleteSpecificBuddy(buddy) ? 'Delete buddy' : 'You cannot delete this buddy'}
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </button>
+                    {canEditBuddy(buddy) && (
+                      <button
+                        className="p-1.5 rounded-md transition-colors bg-white/10 hover:bg-white/20 text-white/60 hover:text-white cursor-pointer"
+                        onClick={(e) => openEditModal(buddy, e)}
+                        title="Edit buddy"
+                      >
+                        <Edit className="h-3.5 w-3.5" />
+                      </button>
+                    )}
+                    {canDeleteSpecificBuddy(buddy) && (
+                      <button
+                        className="p-1.5 rounded-md transition-colors bg-white/5 hover:bg-red-500/20 text-white/60 hover:text-red-300 cursor-pointer"
+                        onClick={(e) => openDeleteDialog(buddy, e)}
+                        title="Delete buddy"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    )}
                   </div>
 
                   {/* Header */}
@@ -964,15 +952,22 @@ export default function BuddiesPage() {
                     <div className="flex-1 space-y-1.5 text-sm">
                       <div className="flex items-center justify-between">
                         <span className="text-white/70 text-xs">Domain:</span>
-                        <div className={`inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium ${
-                          buddy.domainRole === 'frontend' ? 'bg-white/10 text-blue-300' :
-                          buddy.domainRole === 'backend' ? 'bg-white/10 text-purple-300' :
-                          buddy.domainRole === 'devops' ? 'bg-white/10 text-orange-300' :
-                          buddy.domainRole === 'qa' ? 'bg-white/10 text-pink-300' :
-                          'bg-white/10 text-teal-300'
-                        }`}>
-                          {buddy.domainRole}
-                        </div>
+                        {(() => {
+                          const domain = buddy.user?.domainRole || buddy.domainRole;
+                          return (
+                            <div className={`inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium capitalize ${
+                              domain === 'frontend' ? 'bg-white/10 text-blue-300' :
+                              domain === 'backend' ? 'bg-white/10 text-purple-300' :
+                              domain === 'fullstack' ? 'bg-white/10 text-indigo-300' :
+                              domain === 'devops' ? 'bg-white/10 text-orange-300' :
+                              domain === 'qa' ? 'bg-white/10 text-pink-300' :
+                              domain === 'hr' ? 'bg-white/10 text-teal-300' :
+                              'bg-white/10 text-white/60'
+                            }`}>
+                              {domain || 'Not assigned'}
+                            </div>
+                          );
+                        })()}
                       </div>
 
                       <div className="flex items-center justify-between">
@@ -985,30 +980,45 @@ export default function BuddiesPage() {
                       <div className="flex items-center justify-between">
                         <span className="text-white/70 text-xs">Progress:</span>
                         <span className="font-medium text-white text-xs">
-                          {buddy.progress}%
+                          {(() => {
+                            const progressValue = buddy.progress !== undefined && buddy.progress !== null && buddy.progress > 0
+                              ? buddy.progress
+                              : buddy.stats?.totalTasks && buddy.stats.totalTasks > 0
+                                ? Math.round((buddy.stats.completedTasks / buddy.stats.totalTasks) * 100)
+                                : 0;
+                            return progressValue.toFixed(1);
+                          })()}%
                         </span>
                       </div>
                     </div>
 
                     {/* Progress Bar - Compact bottom */}
-                    {buddy.progress > 0 && (
-                      <div className="mt-2 pt-2 border-t border-white/10">
-                        <div className="flex justify-between items-center mb-1">
-                          <span className="text-xs text-white/60">Overall Progress</span>
-                          <span className="text-xs text-white/80 font-medium">
-                            {buddy.progress}%
-                          </span>
+                    {(() => {
+                      const progressValue = buddy.progress !== undefined && buddy.progress !== null && buddy.progress > 0
+                        ? buddy.progress
+                        : buddy.stats?.totalTasks && buddy.stats.totalTasks > 0
+                          ? Math.round((buddy.stats.completedTasks / buddy.stats.totalTasks) * 100)
+                          : 0;
+
+                      return progressValue > 0 && (
+                        <div className="mt-2 pt-2 border-t border-white/10">
+                          <div className="flex justify-between items-center mb-1">
+                            <span className="text-xs text-white/60">Overall Progress</span>
+                            <span className="text-xs text-white/80 font-medium">
+                              {progressValue.toFixed(1)}%
+                            </span>
+                          </div>
+                          <div className="w-full h-1 bg-white/10 rounded-full overflow-hidden">
+                            <div
+                              className="h-full bg-gradient-to-r from-green-400/60 to-green-300/80 rounded-full transition-all duration-500"
+                              style={{
+                                width: `${progressValue}%`
+                              }}
+                            ></div>
+                          </div>
                         </div>
-                        <div className="w-full h-1 bg-white/10 rounded-full overflow-hidden">
-                          <div 
-                            className="h-full bg-gradient-to-r from-green-400/60 to-green-300/80 rounded-full transition-all duration-500"
-                            style={{ 
-                              width: `${buddy.progress}%` 
-                            }}
-                          ></div>
-                        </div>
-                      </div>
-                    )}
+                      );
+                    })()}
                 </div>
               </motion.div>
             ))}

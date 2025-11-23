@@ -178,31 +178,20 @@ export default function MentorCard({ mentor, canEdit = true, canDelete = true, c
           >
             <MessageCircle className="h-3.5 w-3.5" />
           </button>
-          
-          <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
-            <DialogTrigger asChild>
-              <button
-                className={`p-1.5 rounded-md transition-colors ${
-                  canEdit
-                    ? 'bg-white/10 hover:bg-white/20 text-white/60 hover:text-white cursor-pointer'
-                    : 'bg-white/5 text-white/30 cursor-not-allowed opacity-50'
-                }`}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  if (!canEdit) {
-                    toast({
-                      title: 'Permission Denied',
-                      description: 'You do not have permission to edit mentors',
-                      variant: 'destructive'
-                    });
-                  }
-                }}
-                disabled={!canEdit}
-                title={canEdit ? 'Edit mentor' : 'You cannot edit mentors'}
-              >
-                <Edit className="w-3.5 h-3.5" />
-              </button>
-            </DialogTrigger>
+
+          {canEdit && (
+            <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
+              <DialogTrigger asChild>
+                <button
+                  className="p-1.5 rounded-md transition-colors bg-white/10 hover:bg-white/20 text-white/60 hover:text-white cursor-pointer"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                  }}
+                  title="Edit mentor"
+                >
+                  <Edit className="w-3.5 h-3.5" />
+                </button>
+              </DialogTrigger>
             <DialogContent
               className="sm:max-w-[600px]"
               // onPointerDownOutside={(e) => {
@@ -345,32 +334,22 @@ export default function MentorCard({ mentor, canEdit = true, canDelete = true, c
                 </form>
               </Form>
             </DialogContent>
-          </Dialog>
-          
-          <Dialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
-            <DialogTrigger asChild>
-              <button
-                className={`p-1.5 rounded-md transition-colors ${
-                  canDelete
-                    ? 'bg-white/5 hover:bg-red-500/20 text-red-400 hover:text-red-300 cursor-pointer'
-                    : 'bg-white/5 text-white/30 cursor-not-allowed opacity-50'
-                }`}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  if (!canDelete) {
-                    toast({
-                      title: 'Permission Denied',
-                      description: 'You do not have permission to delete mentors',
-                      variant: 'destructive'
-                    });
-                  }
-                }}
-                disabled={!canDelete}
-                title={canDelete ? 'Delete mentor' : 'You cannot delete mentors'}
-              >
-                <Trash2 className="w-3.5 h-3.5" />
-              </button>
-            </DialogTrigger>
+            </Dialog>
+          )}
+
+          {canDelete && (
+            <Dialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
+              <DialogTrigger asChild>
+                <button
+                  className="p-1.5 rounded-md transition-colors bg-white/5 hover:bg-red-500/20 text-red-400 hover:text-red-300 cursor-pointer"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                  }}
+                  title="Delete mentor"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                </button>
+              </DialogTrigger>
             <DialogContent className="bg-card border border-white/10 p-6 rounded-xl">
               <DialogHeader>
                 <DialogTitle className="text-white text-xl">Delete Mentor</DialogTitle>
@@ -397,7 +376,8 @@ export default function MentorCard({ mentor, canEdit = true, canDelete = true, c
                 </button>
               </div>
             </DialogContent>
-          </Dialog>
+            </Dialog>
+          )}
         </div>
       </div>
 

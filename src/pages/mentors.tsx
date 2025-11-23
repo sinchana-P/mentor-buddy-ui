@@ -231,18 +231,18 @@ export default function MentorsPage() {
               Refresh ({mentors.length})
             </button>
             
-            <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-              <DialogTrigger asChild>
-                <button
-                  className={`btn-gradient hover-lift flex items-center gap-2 ${!canCreateMentor ? 'opacity-50 cursor-not-allowed' : ''}`}
-                  disabled={!canCreateMentor}
-                  title={!canCreateMentor ? 'You do not have permission to create mentors' : 'Add new mentor'}
-                >
-                  <Plus className="w-4 h-4" />
-                  Add Mentor
-                </button>
-              </DialogTrigger>
-              <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto bg-card border border-white/10 p-6 rounded-xl">
+            {canCreateMentor && (
+              <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+                <DialogTrigger asChild>
+                  <button
+                    className="btn-gradient hover-lift flex items-center gap-2"
+                    title="Add new mentor"
+                  >
+                    <Plus className="w-4 h-4" />
+                    Add Mentor
+                  </button>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto bg-card border border-white/10 p-6 rounded-xl">
               <DialogHeader>
                 <div className="flex items-center gap-3 mb-4">
                   <div className="w-8 h-8 gradient-primary rounded-lg flex items-center justify-center">
@@ -367,7 +367,8 @@ export default function MentorsPage() {
                 </form>
               </Form>
             </DialogContent>
-            </Dialog>
+              </Dialog>
+            )}
           </div>
         </motion.div>
 
