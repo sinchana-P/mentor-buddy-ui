@@ -11,7 +11,10 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Search, Plus, FileText, Edit, Trash2 } from 'lucide-react';
+import PageHeader from '@/components/PageHeader';
+import FilterBar from '@/components/FilterBar';
+import LoadingSpinner from '@/components/ui/loading-spinner';
+import { GraduationCap, Plus, FileText, Edit, Trash2 } from 'lucide-react';
 import { useToast } from '../hooks/use-toast';
 
 const formSchema = z.object({
@@ -70,18 +73,33 @@ export default function CurriculumPage() {
     }
   };
   
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <LoadingSpinner size="lg" />
+      </div>
+    );
+  }
+
   return (
-      <div className="w-full px-6 py-6">
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-3xl font-bold">Curriculum Management</h1>
-          
-          <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-            <DialogTrigger asChild>
-              <Button>
-                <Plus className="mr-2 h-4 w-4" />
-                Add Curriculum
-              </Button>
-            </DialogTrigger>
+      <div className="min-h-screen w-full">
+        {/* Standardized Page Header */}
+        <PageHeader
+          icon={GraduationCap}
+          title="Curriculum Management"
+          description="Manage curriculum items and learning paths"
+          stats={[
+            { label: 'Total', value: curriculum.length },
+            { label: 'Domains', value: new Set(curriculum.map(c => c.domainRole)).size },
+          ]}
+          actions={
+            <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+              <DialogTrigger asChild>
+                <Button>
+                  <Plus className="mr-2 h-4 w-4" />
+                  Add Curriculum
+                </Button>
+              </DialogTrigger>
             <DialogContent className="sm:max-w-[600px]">
               <DialogHeader>
                 <DialogTitle>Add New Curriculum</DialogTitle>
@@ -177,92 +195,94 @@ export default function CurriculumPage() {
                 </form>
               </Form>
             </DialogContent>
-          </Dialog>
-        </div>
-        
-        <div className="flex justify-between items-center mb-6">
-          <div className="relative w-full max-w-sm">
-            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500 dark:text-gray-400" />
-            <Input
-              type="search"
-              placeholder="Search curriculum..."
-              value={filters.search}
-              onChange={(e) => handleFilterChange('search', e.target.value)}
-              className="pl-9"
-            />
-          </div>
-          <Select value={filters.domain} onValueChange={(value) => handleFilterChange('domain', value)}>
-            <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="All Domains" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Domains</SelectItem>
-              <SelectItem value="frontend">Frontend</SelectItem>
-              <SelectItem value="backend">Backend</SelectItem>
-              <SelectItem value="devops">DevOps</SelectItem>
-              <SelectItem value="qa">QA</SelectItem>
-              <SelectItem value="hr">HR</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-        
-        {isLoading ? (
-          <div className="text-center py-10">
-            <p>Loading curriculum...</p>
-          </div>
-        ) : isError ? (
-          <div className="text-center py-10 text-red-500">
-            <p>Error loading curriculum. Please try again.</p>
-          </div>
-        ) : curriculum.length === 0 ? (
-          <div className="text-center py-10">
-            <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">No curriculum items found</h3>
-            <p className="text-gray-600 dark:text-gray-400 mb-4">Create your first curriculum item to get started</p>
-            <Button onClick={() => setIsAddDialogOpen(true)}>
-              <Plus className="mr-2 h-4 w-4" />
-              Add Curriculum
-            </Button>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {curriculum.map((item) => (
-              <Card key={item.id} className="overflow-hidden">
-                <CardHeader className="pb-3">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <CardTitle className="text-xl">{item.name}</CardTitle>
-                      <CardDescription className="mt-1">
-                        {item.domainRole.charAt(0).toUpperCase() + item.domainRole.slice(1)}
-                      </CardDescription>
+            </Dialog>
+          }
+        />
+
+        {/* Standardized Filter Bar */}
+        <FilterBar
+          searchValue={filters.search}
+          onSearchChange={(value) => handleFilterChange('search', value)}
+          searchPlaceholder="Search curriculum..."
+          filters={
+            <Select value={filters.domain} onValueChange={(value) => handleFilterChange('domain', value)}>
+              <SelectTrigger className="w-[140px]">
+                <SelectValue placeholder="All Domains" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Domains</SelectItem>
+                <SelectItem value="frontend">Frontend</SelectItem>
+                <SelectItem value="backend">Backend</SelectItem>
+                <SelectItem value="devops">DevOps</SelectItem>
+                <SelectItem value="qa">QA</SelectItem>
+                <SelectItem value="hr">HR</SelectItem>
+              </SelectContent>
+            </Select>
+          }
+        />
+
+        {/* Main Content */}
+        <div className="p-6">
+          {isError ? (
+            <div className="text-center py-12 bg-card border border-border rounded-lg">
+              <div className="w-12 h-12 bg-destructive/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                <FileText className="w-6 h-6 text-destructive" />
+              </div>
+              <h3 className="text-base font-semibold text-foreground mb-2">Error loading curriculum</h3>
+              <p className="text-sm text-muted-foreground">Please try again later</p>
+            </div>
+          ) : curriculum.length === 0 ? (
+            <div className="text-center py-12 bg-card border border-border rounded-lg">
+              <div className="w-12 h-12 bg-muted rounded-full flex items-center justify-center mx-auto mb-4">
+                <FileText className="w-6 h-6 text-muted-foreground" />
+              </div>
+              <h3 className="text-base font-semibold text-foreground mb-2">No curriculum items found</h3>
+              <p className="text-sm text-muted-foreground mb-4">Create your first curriculum item to get started</p>
+              <Button onClick={() => setIsAddDialogOpen(true)}>
+                <Plus className="mr-2 h-4 w-4" />
+                Add Curriculum
+              </Button>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {curriculum.map((item) => (
+                <Card key={item.id} className="overflow-hidden hover:border-primary/50 transition-all">
+                  <CardHeader className="pb-3">
+                    <div className="flex justify-between items-start">
+                      <div className="flex-1 min-w-0">
+                        <CardTitle className="text-lg truncate">{item.name}</CardTitle>
+                        <CardDescription className="mt-1 capitalize">
+                          {item.domainRole} · {item.totalWeeks} weeks
+                        </CardDescription>
+                      </div>
+                      <div className="flex gap-1 ml-2">
+                        <Button variant="ghost" size="icon" className="h-8 w-8">
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive">
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </div>
-                    <div className="flex space-x-2">
-                      <Button variant="ghost" size="icon">
-                        <Edit className="h-4 w-4" />
+                  </CardHeader>
+                  <CardContent className="pb-3">
+                    <p className="text-sm text-muted-foreground line-clamp-2">{item.description}</p>
+                  </CardContent>
+                  <CardFooter className="border-t pt-3 flex justify-between items-center">
+                    <span className="text-xs text-muted-foreground">
+                      {new Date(item.createdAt).toLocaleDateString()}
+                    </span>
+                    <Link href={`/curriculum/${item.id}`}>
+                      <Button variant="outline" size="sm">
+                        View Details
                       </Button>
-                      <Button variant="ghost" size="icon">
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">{item.description}</p>
-                </CardContent>
-                <CardFooter className="border-t pt-3 flex justify-between">
-                  <span className="text-xs text-gray-500">
-                    Created: {new Date(item.createdAt).toLocaleDateString()}
-                  </span>
-                  <Link href={`/curriculum/${item.id}`}>
-                    <Button variant="outline" size="sm">
-                      View Details
-                    </Button>
-                  </Link>
-                </CardFooter>
-              </Card>
-            ))}
-          </div>
-        )}
+                    </Link>
+                  </CardFooter>
+                </Card>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
   );
 }

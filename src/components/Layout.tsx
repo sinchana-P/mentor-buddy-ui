@@ -34,7 +34,7 @@ const managerNavigation = [
   { name: 'Managers', href: '/managers', icon: Shield, roles: ['manager'] },
   { name: 'Mentors', href: '/mentors', icon: Users, roles: ['manager', 'mentor'] },
   { name: 'Buddies', href: '/buddies', icon: UserCheck, roles: ['manager', 'mentor'] },
-  { name: 'Curriculum Management', href: '/curriculum-management', icon: GraduationCap, roles: ['manager', 'mentor'] },
+  { name: 'Curriculum', href: '/curriculum-management', icon: GraduationCap, roles: ['manager', 'mentor'] },
   { name: 'Resources', href: '/resources', icon: BookOpen, roles: ['manager', 'mentor'] },
 ];
 
@@ -78,11 +78,7 @@ export default function Layout({ children }: LayoutProps) {
       return location === '/buddy/dashboard';
     }
 
-    // Special case for Buddies and Mentors list pages - don't match detail pages
-    if (href === '/buddies' || href === '/mentors') {
-      return location === href;
-    }
-
+    // Match exact path or any nested paths (e.g., /buddies matches /buddies/:id)
     return location === href || location.startsWith(href + '/');
   };
 
@@ -129,6 +125,9 @@ export default function Layout({ children }: LayoutProps) {
             <p className="text-sm text-muted-foreground mb-2">
               {user?.email || 'manager2@gmail.com'}
             </p>
+            <div className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary border border-primary/20">
+              {user?.role ? user.role.charAt(0).toUpperCase() + user.role.slice(1) : 'Manager'}
+            </div>
           </div>
           {isMobile && (
             <button

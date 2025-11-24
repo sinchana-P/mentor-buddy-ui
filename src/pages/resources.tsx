@@ -1,24 +1,25 @@
 import { useState, useEffect } from 'react';
 import { useSelector } from 'react-redux';
-import { motion } from 'framer-motion';
 import type { RootState } from '@/store';
-// RTK Query imports following your reference pattern  
-// import { useGetResourcesQuery, useCreateResourceMutation } from '@/api';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { 
-  BookOpen, 
-  Video, 
-  FileText, 
-  ExternalLink, 
-  Download, 
-  Search,
+import {
+  BookOpen,
+  Video,
+  FileText,
+  ExternalLink,
+  Download,
   Play,
   Bookmark,
   Share2,
   Clock,
   Plus,
-  Sparkles
 } from 'lucide-react';
+import PageHeader from '@/components/PageHeader';
+import FilterBar from '@/components/FilterBar';
+import LoadingSpinner from '@/components/ui/loading-spinner';
 import AddResourceModal from '@/components/AddResourceModal';
 
 interface Resource {
@@ -45,15 +46,9 @@ export default function Resources() {
   const [filteredResources, setFilteredResources] = useState<Resource[]>([]);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
 
-  // ✅ Following your reference pattern: useSelector to read from store
   const isLoading = useSelector((state: RootState) => state.resources.loading);
 
-  // ✅ RTK Query hooks for API operations (following your reference pattern)
-  // const { data: resourcesFromApi } = useGetResourcesQuery({});
-  // const [createResourceTrigger] = useCreateResourceMutation();
-
   useEffect(() => {
-    // TODO: Fetch resources from API
     const mockResources: Resource[] = [
       {
         id: '1',
@@ -137,7 +132,7 @@ export default function Resources() {
         isBookmarked: true
       }
     ];
-    
+
     setResources(mockResources);
     setFilteredResources(mockResources);
   }, []);
@@ -145,7 +140,6 @@ export default function Resources() {
   useEffect(() => {
     let filtered = resources;
 
-    // Filter by search term
     if (searchTerm) {
       filtered = filtered.filter(resource =>
         resource.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -154,17 +148,14 @@ export default function Resources() {
       );
     }
 
-    // Filter by category
     if (selectedCategory !== 'all') {
       filtered = filtered.filter(resource => resource.category === selectedCategory);
     }
 
-    // Filter by difficulty
     if (selectedDifficulty !== 'all') {
       filtered = filtered.filter(resource => resource.difficulty === selectedDifficulty);
     }
 
-    // Filter by type
     if (selectedType !== 'all') {
       filtered = filtered.filter(resource => resource.type === selectedType);
     }
@@ -189,6 +180,14 @@ export default function Resources() {
     }
   };
 
+  const getDifficultyBadgeClass = (difficulty: string) => {
+    const classes: Record<string, string> = {
+      beginner: 'bg-green-500/10 text-green-600 border-green-500/20',
+      intermediate: 'bg-yellow-500/10 text-yellow-600 border-yellow-500/20',
+      advanced: 'bg-red-500/10 text-red-600 border-red-500/20',
+    };
+    return classes[difficulty] || 'bg-gray-500/10 text-gray-600 border-gray-500/20';
+  };
 
   const handleBookmark = (resourceId: string) => {
     setResources(prev => prev.map(resource =>
@@ -208,7 +207,6 @@ export default function Resources() {
         });
       } else {
         await navigator.clipboard.writeText(resource.url);
-        // TODO: Show toast notification for copied URL
       }
     } catch (error) {
       console.error('Error sharing resource:', error);
@@ -217,8 +215,6 @@ export default function Resources() {
 
   const handleDownload = async (resource: Resource) => {
     try {
-      // For external URLs, we can't directly download, so we'll open in new tab
-      // For actual files, we would implement proper download logic
       window.open(resource.url, '_blank');
     } catch (error) {
       console.error('Error downloading resource:', error);
@@ -227,223 +223,192 @@ export default function Resources() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen p-6">
-        <div className="premium-card animate-pulse">
-          <div className="space-y-6">
-            <div className="h-8 loading-shimmer rounded w-1/4"></div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {[...Array(6)].map((_, i) => (
-                <div key={i} className="h-64 premium-card loading-shimmer"></div>
-              ))}
-            </div>
-          </div>
-        </div>
+      <div className="flex items-center justify-center min-h-[400px]">
+        <LoadingSpinner size="lg" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen p-6 space-y-8">
-      {/* Premium Header */}
-      <motion.div
-        initial={{ opacity: 0, y: 30 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.8, ease: "easeOut" }}
-        className="premium-card glass-card mb-8"
-      >
-        <div className="flex items-start justify-between">
-          <div className="flex items-start gap-4">
-            <div className="w-12 h-12 bg-white/10 rounded-xl flex items-center justify-center mt-1">
-              <BookOpen className="w-6 h-6 text-white/80" />
-            </div>
-            <div className="flex-1">
-              <h1 className="text-3xl font-bold text-white mb-2">Resources</h1>
-              <div className="flex items-center gap-2">
-                <Sparkles className="w-4 h-4 text-purple-400" />
-                <p className="text-white/60">Learning materials, documentation, and tools</p>
-              </div>
-            </div>
-          </div>
-          <button onClick={() => setIsAddModalOpen(true)} className="btn-gradient mt-1">
-            <Plus className="h-4 w-4 mr-2" />
+    <div className="min-h-screen w-full">
+      {/* Standardized Page Header */}
+      <PageHeader
+        icon={BookOpen}
+        title="Resources"
+        description="Learning materials, documentation, and tools"
+        stats={[
+          { label: 'Total', value: resources.length },
+          { label: 'Categories', value: new Set(resources.map(r => r.category)).size },
+        ]}
+        actions={
+          <Button onClick={() => setIsAddModalOpen(true)}>
+            <Plus className="mr-2 h-4 w-4" />
             Add Resource
-          </button>
-        </div>
-      </motion.div>
+          </Button>
+        }
+      />
 
-      {/* Search and Filters */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6, delay: 0.1 }}
-        className="premium-card"
-      >
-        <div className="flex flex-col md:flex-row gap-4">
-          <div className="flex-1 relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-white/60 h-4 w-4" />
-            <input
-              placeholder="Search resources..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="input-premium pl-10"
-            />
-          </div>
-          <div className="flex gap-2">
+      {/* Standardized Filter Bar */}
+      <FilterBar
+        searchValue={searchTerm}
+        onSearchChange={setSearchTerm}
+        searchPlaceholder="Search resources..."
+        filters={
+          <>
             <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-              <SelectTrigger className="select-trigger w-36">
-                <SelectValue />
+              <SelectTrigger className="w-[130px]">
+                <SelectValue placeholder="Category" />
               </SelectTrigger>
-              <SelectContent className="select-content">
-                <SelectItem value="all" className="select-item">All Categories</SelectItem>
-                <SelectItem value="frontend" className="select-item">Frontend</SelectItem>
-                <SelectItem value="backend" className="select-item">Backend</SelectItem>
-                <SelectItem value="devops" className="select-item">DevOps</SelectItem>
-                <SelectItem value="qa" className="select-item">QA</SelectItem>
-                <SelectItem value="hr" className="select-item">HR</SelectItem>
+              <SelectContent>
+                <SelectItem value="all">All Categories</SelectItem>
+                <SelectItem value="frontend">Frontend</SelectItem>
+                <SelectItem value="backend">Backend</SelectItem>
+                <SelectItem value="devops">DevOps</SelectItem>
+                <SelectItem value="qa">QA</SelectItem>
+                <SelectItem value="hr">HR</SelectItem>
               </SelectContent>
             </Select>
             <Select value={selectedDifficulty} onValueChange={setSelectedDifficulty}>
-              <SelectTrigger className="select-trigger w-32">
-                <SelectValue />
+              <SelectTrigger className="w-[120px]">
+                <SelectValue placeholder="Level" />
               </SelectTrigger>
-              <SelectContent className="select-content">
-                <SelectItem value="all" className="select-item">All Levels</SelectItem>
-                <SelectItem value="beginner" className="select-item">Beginner</SelectItem>
-                <SelectItem value="intermediate" className="select-item">Intermediate</SelectItem>
-                <SelectItem value="advanced" className="select-item">Advanced</SelectItem>
+              <SelectContent>
+                <SelectItem value="all">All Levels</SelectItem>
+                <SelectItem value="beginner">Beginner</SelectItem>
+                <SelectItem value="intermediate">Intermediate</SelectItem>
+                <SelectItem value="advanced">Advanced</SelectItem>
               </SelectContent>
             </Select>
             <Select value={selectedType} onValueChange={setSelectedType}>
-              <SelectTrigger className="select-trigger w-32">
-                <SelectValue />
+              <SelectTrigger className="w-[120px]">
+                <SelectValue placeholder="Type" />
               </SelectTrigger>
-              <SelectContent className="select-content">
-                <SelectItem value="all" className="select-item">All Types</SelectItem>
-                <SelectItem value="documentation" className="select-item">Documentation</SelectItem>
-                <SelectItem value="video" className="select-item">Video</SelectItem>
-                <SelectItem value="article" className="select-item">Article</SelectItem>
-                <SelectItem value="course" className="select-item">Course</SelectItem>
-                <SelectItem value="tool" className="select-item">Tool</SelectItem>
+              <SelectContent>
+                <SelectItem value="all">All Types</SelectItem>
+                <SelectItem value="documentation">Documentation</SelectItem>
+                <SelectItem value="video">Video</SelectItem>
+                <SelectItem value="article">Article</SelectItem>
+                <SelectItem value="course">Course</SelectItem>
+                <SelectItem value="tool">Tool</SelectItem>
               </SelectContent>
             </Select>
+          </>
+        }
+      />
+
+      {/* Main Content */}
+      <div className="p-6">
+        {filteredResources.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {filteredResources.map((resource) => (
+              <Card key={resource.id} className="group hover:border-primary/50 transition-all h-full flex flex-col">
+                <CardContent className="p-4 flex-1 flex flex-col">
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="flex items-center gap-2">
+                      <span className="text-muted-foreground">
+                        {getTypeIcon(resource.type)}
+                      </span>
+                      <Badge variant="outline" className="text-xs">
+                        {resource.type}
+                      </Badge>
+                    </div>
+                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8"
+                        onClick={() => handleBookmark(resource.id)}
+                      >
+                        <Bookmark className={`h-4 w-4 ${resource.isBookmarked ? 'fill-current text-yellow-500' : 'text-muted-foreground'}`} />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8"
+                        onClick={() => handleShare(resource)}
+                      >
+                        <Share2 className="h-4 w-4 text-muted-foreground" />
+                      </Button>
+                    </div>
+                  </div>
+
+                  <h3 className="font-semibold text-foreground mb-1">{resource.title}</h3>
+                  <p className="text-sm text-muted-foreground mb-3 line-clamp-2 flex-1">
+                    {resource.description}
+                  </p>
+
+                  <div className="space-y-3">
+                    <div className="flex flex-wrap gap-1">
+                      {resource.tags.map((tag, tagIndex) => (
+                        <Badge key={tagIndex} variant="secondary" className="text-xs">
+                          {tag}
+                        </Badge>
+                      ))}
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      <Badge variant="outline" className={`text-xs capitalize ${getDifficultyBadgeClass(resource.difficulty)}`}>
+                        {resource.difficulty}
+                      </Badge>
+                      {resource.rating && (
+                        <div className="flex items-center gap-1 text-sm">
+                          <span className="font-medium">{resource.rating}</span>
+                          <span className="text-yellow-500">★</span>
+                        </div>
+                      )}
+                    </div>
+
+                    {resource.duration && (
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <Clock className="h-3 w-3" />
+                        <span>{resource.duration}</span>
+                      </div>
+                    )}
+
+                    {resource.author && (
+                      <p className="text-xs text-muted-foreground">
+                        By {resource.author}
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="flex gap-2 mt-4 pt-3 border-t">
+                    <Button asChild className="flex-1" size="sm">
+                      <a
+                        href={resource.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        <ExternalLink className="mr-1 h-3 w-3" />
+                        Open
+                      </a>
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleDownload(resource)}
+                    >
+                      <Download className="h-3 w-3" />
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
           </div>
-        </div>
-      </motion.div>
-
-      {/* Resources Grid */}
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        {filteredResources.map((resource, index) => (
-          <motion.div
-            key={resource.id}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.1 * index }}
-            className="premium-card group hover:bg-white/[0.08] transition-all duration-300 h-full flex flex-col"
-          >
-            <div className="flex-1">
-              <div className="flex items-start justify-between mb-4">
-                <div className="flex items-center space-x-2">
-                  <div className="text-white/80">
-                    {getTypeIcon(resource.type)}
-                  </div>
-                  <div className="px-2 py-1 rounded-full text-xs font-medium bg-white/10 text-white/70 border border-white/20">
-                    {resource.type}
-                  </div>
-                </div>
-                <div className="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <button
-                    onClick={() => handleBookmark(resource.id)}
-                    className="p-2 rounded-lg bg-white/10 hover:bg-white/20 transition-colors"
-                  >
-                    <Bookmark className={`h-4 w-4 ${resource.isBookmarked ? 'fill-current text-yellow-400' : 'text-white/60'}`} />
-                  </button>
-                  <button
-                    onClick={() => handleShare(resource)}
-                    className="p-2 rounded-lg bg-white/10 hover:bg-white/20 transition-colors text-white/60 hover:text-white"
-                  >
-                    <Share2 className="h-4 w-4" />
-                  </button>
-                </div>
+        ) : (
+          <Card>
+            <div className="text-center py-12">
+              <div className="w-12 h-12 bg-muted rounded-full flex items-center justify-center mx-auto mb-4">
+                <BookOpen className="w-6 h-6 text-muted-foreground" />
               </div>
-              <h3 className="text-lg font-bold text-white mb-2">{resource.title}</h3>
-              <p className="text-white/70 text-sm mb-4 line-clamp-2">
-                {resource.description}
+              <h3 className="text-base font-semibold text-foreground mb-2">No resources found</h3>
+              <p className="text-sm text-muted-foreground">
+                Try adjusting your search criteria or filters
               </p>
-              <div className="space-y-4">
-                <div className="flex flex-wrap gap-1">
-                  {resource.tags.map((tag, tagIndex) => (
-                    <div key={tagIndex} className="px-2 py-1 rounded-full text-xs font-medium bg-white/5 text-white/60 border border-white/10">
-                      {tag}
-                    </div>
-                  ))}
-                </div>
-                
-                <div className="flex items-center justify-between">
-                  <div className={`px-3 py-1 rounded-full text-xs font-medium ${
-                    resource.difficulty === 'beginner' ? 'bg-green-500/20 text-green-300 border border-green-500/30' :
-                    resource.difficulty === 'intermediate' ? 'bg-yellow-500/20 text-yellow-300 border border-yellow-500/30' :
-                    resource.difficulty === 'advanced' ? 'bg-red-500/20 text-red-300 border border-red-500/30' :
-                    'bg-white/10 text-white/70 border border-white/20'
-                  }`}>
-                    {resource.difficulty}
-                  </div>
-                  {resource.rating && (
-                    <div className="flex items-center space-x-1">
-                      <span className="text-sm font-medium text-white/80">{resource.rating}</span>
-                      <span className="text-yellow-400">⭐</span>
-                    </div>
-                  )}
-                </div>
-
-                {resource.duration && (
-                  <div className="flex items-center space-x-2 text-sm text-white/60">
-                    <Clock className="h-4 w-4" />
-                    <span>{resource.duration}</span>
-                  </div>
-                )}
-
-                {resource.author && (
-                  <div className="text-sm text-white/60">
-                    By {resource.author}
-                  </div>
-                )}
-              </div>
             </div>
-
-            <div className="flex gap-2 mt-4">
-              <a 
-                href={resource.url} 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="btn-gradient flex-1 text-center inline-flex items-center justify-center"
-              >
-                <ExternalLink className="h-4 w-4 mr-2" />
-                Open
-              </a>
-              <button 
-                onClick={() => handleDownload(resource)}
-                className="p-3 rounded-lg bg-white/10 hover:bg-white/20 transition-colors text-white/60 hover:text-white"
-              >
-                <Download className="h-4 w-4" />
-              </button>
-            </div>
-          </motion.div>
-        ))}
+          </Card>
+        )}
       </div>
-
-      {filteredResources.length === 0 && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="premium-card text-center py-12"
-        >
-          <BookOpen className="h-12 w-12 mx-auto text-white/40 mb-4" />
-          <h3 className="text-lg font-medium text-white mb-2">No resources found</h3>
-          <p className="text-white/60">
-            Try adjusting your search criteria or filters
-          </p>
-        </motion.div>
-      )}
 
       <AddResourceModal
         isOpen={isAddModalOpen}
@@ -451,4 +416,4 @@ export default function Resources() {
       />
     </div>
   );
-} 
+}

@@ -1,20 +1,22 @@
 import { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Textarea } from '@/components/ui/textarea';
 import MentorCard from '@/components/MentorCard';
-import { Plus, Search, UserCheck, Filter, Star, Sparkles, Crown, Users, LayoutGrid, Table2, Eye, Edit, Trash2 } from 'lucide-react';
+import PageHeader from '@/components/PageHeader';
+import FilterBar from '@/components/FilterBar';
+import { Plus, UserCheck, LayoutGrid, Table2, Eye, Edit, Trash2, Users } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useSelector } from 'react-redux';
 import type { RootState } from '@/store';
 // RTK Query hooks following your reference pattern
-import { useGetMentorsQuery, useCreateMentorMutation, useUpdateMentorMutation, useDeleteMentorMutation } from '@/api/mentorsApi';
+import { useGetMentorsQuery, useCreateMentorMutation, useDeleteMentorMutation } from '@/api/mentorsApi';
 import { useLocation } from 'wouter';
 import { usePermissions } from '@/hooks/usePermissions';
 
@@ -54,15 +56,14 @@ export default function MentorsPage() {
   const storeError = useSelector((state: RootState) => state.mentors.error);
 
   // RTK Query hooks following your reference pattern
-  const { data: mentors = [], isLoading, error, refetch } = useGetMentorsQuery({
+  const { data: mentors = [], isLoading, error } = useGetMentorsQuery({
     domain: filters.role !== 'all' ? filters.role : undefined,
     search: filters.search || undefined,
     status: filters.status !== 'all' ? filters.status : undefined,
   });
-  
+
   // Following your pattern: const [createTrigger] = useCreateMutation()
   const [createMentorTrigger] = useCreateMentorMutation();
-  const [updateMentorTrigger] = useUpdateMentorMutation();
   const [deleteMentorTrigger] = useDeleteMentorMutation();
 
   const mentorForm = useForm<z.infer<typeof mentorFormSchema>>({
@@ -175,74 +176,26 @@ export default function MentorsPage() {
   }
 
   return (
-    <div className="min-h-screen w-full max-w-full overflow-x-hidden">
-      <div className="content-responsive py-4 sm:py-6">
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-        className="space-y-8"
-      >
-        {/* Premium Header */}
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, ease: "easeOut" }}
-          className="premium-card"
-        >
-          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-6 space-y-4 lg:space-y-0">
-            <div className="space-y-3">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-card rounded-xl flex items-center justify-center ring-1 ring-border">
-                  <Crown className="w-5 h-5 text-foreground" />
-                </div>
-                <div>
-                  <h1 className="text-3xl font-bold text-foreground">Mentors</h1>
-                  <div className="flex items-center gap-2 mt-1">
-                    <Sparkles className="w-4 h-4 text-foreground" />
-                    <p className="text-muted-foreground">Premium mentor management system</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-            
-            {/* Stats Summary */}
-            <div className="flex items-center gap-4">
-              <div className="text-center px-4 py-2 premium-card rounded-lg">
-                <p className="text-2xl font-bold text-foreground">{mentors.length}</p>
-                <p className="text-xs text-muted-foreground">Total</p>
-              </div>
-              <div className="text-center px-4 py-2 premium-card rounded-lg">
-                <p className="text-2xl font-bold text-foreground">{mentors.filter(m => m.isActive).length}</p>
-                <p className="text-xs text-muted-foreground">Active</p>
-              </div>
-            </div>
-          </div>
-          
-          <div className="flex gap-2">
-            <button 
-              onClick={() => {
-                console.log('Refreshing mentors with RTK Query...');
-                refetch();
-              }}
-              className="btn-outline hover-lift flex items-center gap-2"
-            >
-              <Search className="w-4 h-4" />
-              Refresh ({mentors.length})
-            </button>
-            
-            {canCreateMentor && (
-              <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-                <DialogTrigger asChild>
-                  <button
-                    className="btn-gradient hover-lift flex items-center gap-2"
-                    title="Add new mentor"
-                  >
-                    <Plus className="w-4 h-4" />
-                    Add Mentor
-                  </button>
-                </DialogTrigger>
-                <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto bg-card border border-white/10 p-6 rounded-xl">
+    <div className="min-h-screen w-full">
+      {/* Standardized Page Header */}
+      <PageHeader
+        icon={Users}
+        title="Mentors"
+        description="Manage mentors and track their performance"
+        stats={[
+          { label: 'Total', value: mentors.length },
+          { label: 'Active', value: mentors.filter(m => m.isActive).length },
+        ]}
+        actions={
+          canCreateMentor && (
+            <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+              <DialogTrigger asChild>
+                <Button>
+                  <Plus className="mr-2 h-4 w-4" />
+                  Add Mentor
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <div className="flex items-center gap-3 mb-4">
                   <div className="w-8 h-8 gradient-primary rounded-lg flex items-center justify-center">
@@ -367,36 +320,20 @@ export default function MentorsPage() {
                 </form>
               </Form>
             </DialogContent>
-              </Dialog>
-            )}
-          </div>
-        </motion.div>
+            </Dialog>
+          )
+        }
+      />
 
-        {/* Premium Filters */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2, duration: 0.6 }}
-          className="premium-card"
-        >
-          <div className="flex items-center gap-3 mb-6">
-            <div className="w-8 h-8 bg-card rounded-lg flex items-center justify-center ring-1 ring-border">
-              <Filter className="w-4 h-4 text-foreground" />
-            </div>
-            <h2 className="text-lg font-semibold text-foreground">Filter & Search</h2>
-          </div>
-          <div className="flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-4">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-              <input
-                className="input-premium pl-10 w-full"
-                placeholder="Search mentors by name, expertise, or domain..."
-                value={filters.search}
-                onChange={(e) => handleFilterChange('search', e.target.value)}
-              />
-            </div>
+      {/* Standardized Filter Bar */}
+      <FilterBar
+        searchValue={filters.search}
+        onSearchChange={(value) => handleFilterChange('search', value)}
+        searchPlaceholder="Search mentors by name, expertise, or domain..."
+        filters={
+          <>
             <Select value={filters.role} onValueChange={(value) => handleFilterChange('role', value)}>
-              <SelectTrigger className="w-[180px] input-premium">
+              <SelectTrigger className="w-[140px]">
                 <SelectValue placeholder="All Roles" />
               </SelectTrigger>
               <SelectContent>
@@ -409,7 +346,7 @@ export default function MentorsPage() {
               </SelectContent>
             </Select>
             <Select value={filters.status} onValueChange={(value) => handleFilterChange('status', value)}>
-              <SelectTrigger className="w-[180px] input-premium">
+              <SelectTrigger className="w-[130px]">
                 <SelectValue placeholder="All Status" />
               </SelectTrigger>
               <SelectContent>
@@ -418,163 +355,150 @@ export default function MentorsPage() {
                 <SelectItem value="inactive">Inactive</SelectItem>
               </SelectContent>
             </Select>
+          </>
+        }
+        actions={
+          <div className="flex items-center gap-2 bg-muted/50 rounded-lg p-1">
+            <Button
+              variant={viewMode === 'table' ? 'default' : 'ghost'}
+              size="sm"
+              onClick={() => setViewMode('table')}
+              className="h-8"
+            >
+              <Table2 className="h-4 w-4" />
+            </Button>
+            <Button
+              variant={viewMode === 'card' ? 'default' : 'ghost'}
+              size="sm"
+              onClick={() => setViewMode('card')}
+              className="h-8"
+            >
+              <LayoutGrid className="h-4 w-4" />
+            </Button>
           </div>
-        </motion.div>
+        }
+      />
 
-        {/* Premium Mentors Grid */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.4, duration: 0.6 }}
-        >
-          <div className="flex items-center gap-3 mb-6">
-            <div className="w-8 h-8 gradient-success rounded-lg flex items-center justify-center">
-              <Users className="w-4 h-4 text-white" />
-            </div>
-            <h2 className="text-lg font-semibold text-premium">Available Mentors</h2>
-            <div className="ml-auto flex items-center gap-4">
-              <div className="flex items-center gap-2 px-3 py-1.5 bg-white/10 rounded-lg">
-                <Star className="w-4 h-4 text-yellow-400" />
-                <span className="text-sm font-medium text-white">{mentors?.length || 0} Total</span>
-              </div>
-
-              {/* View Toggle Buttons */}
-              <div className="flex items-center gap-1 bg-white/5 rounded-lg p-1">
-                <button
-                  onClick={() => setViewMode('table')}
-                  className={`p-2 rounded-md transition-all ${
-                    viewMode === 'table'
-                      ? 'bg-white/20 text-white'
-                      : 'text-white/50 hover:text-white/80 hover:bg-white/10'
-                  }`}
-                  title="Table View"
-                >
-                  <Table2 className="w-4 h-4" />
-                </button>
-                <button
-                  onClick={() => setViewMode('card')}
-                  className={`p-2 rounded-md transition-all ${
-                    viewMode === 'card'
-                      ? 'bg-white/20 text-white'
-                      : 'text-white/50 hover:text-white/80 hover:bg-white/10'
-                  }`}
-                  title="Card View"
-                >
-                  <LayoutGrid className="w-4 h-4" />
-                </button>
-              </div>
-            </div>
-          </div>
+      {/* Main Content */}
+      <div className="p-6">
 
           {/* Conditional Rendering: Table View or Card View */}
           {viewMode === 'table' ? (
             // TABLE VIEW
-            <div className="premium-card overflow-hidden">
+            <div className="bg-card border border-border rounded-lg overflow-hidden">
               {mentors && mentors.length > 0 ? (
                 <>
                 <div className="overflow-x-auto">
                   <table className="w-full">
                     <thead>
-                      <tr className="border-b border-white/10">
-                        <th className="text-left py-4 px-6 text-sm font-semibold text-white/70 uppercase tracking-wider">Name</th>
-                        <th className="text-left py-4 px-6 text-sm font-semibold text-white/70 uppercase tracking-wider">Domain</th>
-                        <th className="text-left py-4 px-6 text-sm font-semibold text-white/70 uppercase tracking-wider">Experience</th>
-                        <th className="text-left py-4 px-6 text-sm font-semibold text-white/70 uppercase tracking-wider">Status</th>
-                        <th className="text-right py-4 px-6 text-sm font-semibold text-white/70 uppercase tracking-wider">Actions</th>
+                      <tr className="border-b border-border bg-muted/30">
+                        <th className="text-left py-3 px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Name</th>
+                        <th className="text-left py-3 px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Domain</th>
+                        <th className="text-left py-3 px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Experience</th>
+                        <th className="text-left py-3 px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Status</th>
+                        <th className="text-right py-3 px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Actions</th>
                       </tr>
                     </thead>
                     <tbody>
                       {(() => {
                         // Pagination logic for table view
-                        const totalPages = Math.ceil(mentors.length / itemsPerPage);
                         const startIndex = (currentPage - 1) * itemsPerPage;
                         const endIndex = startIndex + itemsPerPage;
                         const paginatedMentors = mentors.slice(startIndex, endIndex);
 
-                        return paginatedMentors.map((mentor, index) => (
-                        <motion.tr
+                        return paginatedMentors.map((mentor) => (
+                        <tr
                           key={mentor.id}
-                          initial={{ opacity: 0, x: -20 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          transition={{ delay: index * 0.05 }}
-                          className="border-b border-white/5 hover:bg-white/5 transition-colors cursor-pointer"
+                          className="border-b border-border hover:bg-muted/50 transition-colors cursor-pointer"
                           onClick={() => setLocation(`/mentors/${mentor.id}`)}
                         >
                           {/* Name Column with Avatar */}
-                          <td className="py-4 px-6">
+                          <td className="py-3 px-4">
                             <div className="flex items-center gap-3">
-                              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center flex-shrink-0">
-                                <span className="text-sm font-semibold text-white">
+                              <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                                <span className="text-sm font-semibold text-primary">
                                   {mentor.user?.name?.split(' ').map((n: string) => n[0]).join('') || 'M'}
                                 </span>
                               </div>
                               <div>
-                                <p className="font-medium text-white">{mentor.user?.name || 'Unknown'}</p>
-                                <p className="text-xs text-white/60">{mentor.user?.email || ''}</p>
+                                <p className="font-medium text-foreground">{mentor.user?.name || 'Unknown'}</p>
+                                <p className="text-xs text-muted-foreground">{mentor.user?.email || ''}</p>
                               </div>
                             </div>
                           </td>
 
                           {/* Domain Column */}
-                          <td className="py-4 px-6">
-                            <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-blue-500/10 text-blue-400 capitalize">
+                          <td className="py-3 px-4">
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-500/10 text-blue-600 dark:text-blue-400 capitalize border border-blue-500/20">
                               {mentor.user?.domainRole || 'Not assigned'}
                             </span>
                           </td>
 
                           {/* Experience Column */}
-                          <td className="py-4 px-6">
-                            <p className="text-sm text-white/80 line-clamp-2 max-w-xs">
+                          <td className="py-3 px-4">
+                            <p className="text-sm text-muted-foreground line-clamp-2 max-w-xs">
                               {mentor.experience || 'No experience listed'}
                             </p>
                           </td>
 
                           {/* Status Column */}
-                          <td className="py-4 px-6">
+                          <td className="py-3 px-4">
                             {mentor.isActive ? (
-                              <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-green-500/10 text-green-400">
+                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-500/10 text-green-600 border border-green-500/20">
                                 Active
                               </span>
                             ) : (
-                              <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-red-500/10 text-red-400">
+                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-500/10 text-red-600 border border-red-500/20">
                                 Inactive
                               </span>
                             )}
                           </td>
 
                           {/* Actions Column */}
-                          <td className="py-4 px-6">
-                            <div className="flex items-center justify-end gap-2">
+                          <td className="py-3 px-4">
+                            <div className="flex items-center justify-end gap-1">
                               {canViewDetails && (
-                                <button
-                                  onClick={() => setLocation(`/mentors/${mentor.id}`)}
-                                  className="p-2 rounded-lg bg-white/5 hover:bg-white/10 transition-colors"
-                                  title="View Details"
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setLocation(`/mentors/${mentor.id}`);
+                                  }}
+                                  className="h-8 w-8 p-0"
                                 >
-                                  <Eye className="w-4 h-4 text-white/70" />
-                                </button>
+                                  <Eye className="w-4 h-4" />
+                                </Button>
                               )}
                               {canEditMentor && (
-                                <button
-                                  onClick={() => setLocation(`/mentors/${mentor.id}/edit`)}
-                                  className="p-2 rounded-lg bg-white/5 hover:bg-white/10 transition-colors"
-                                  title="Edit Mentor"
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setLocation(`/mentors/${mentor.id}/edit`);
+                                  }}
+                                  className="h-8 w-8 p-0"
                                 >
-                                  <Edit className="w-4 h-4 text-blue-400" />
-                                </button>
+                                  <Edit className="w-4 h-4" />
+                                </Button>
                               )}
                               {canDeleteMentor && (
-                                <button
-                                  onClick={() => handleDeleteMentor(mentor.id)}
-                                  className="p-2 rounded-lg bg-white/5 hover:bg-red-500/20 transition-colors"
-                                  title="Delete Mentor"
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleDeleteMentor(mentor.id);
+                                  }}
+                                  className="h-8 w-8 p-0 text-destructive hover:text-destructive"
                                 >
-                                  <Trash2 className="w-4 h-4 text-red-400" />
-                                </button>
+                                  <Trash2 className="w-4 h-4" />
+                                </Button>
                               )}
                             </div>
                           </td>
-                        </motion.tr>
+                        </tr>
                       ))})()}
                     </tbody>
                   </table>
@@ -582,18 +506,18 @@ export default function MentorsPage() {
 
                 {/* Pagination Controls */}
                 {mentors.length > 0 && (
-                  <div className="flex items-center justify-between px-6 py-4 border-t border-white/10">
+                  <div className="flex items-center justify-between px-4 py-3 border-t border-border bg-muted/30">
                     <div className="flex items-center gap-4">
-                      <div className="text-sm text-white/60">
+                      <div className="text-sm text-muted-foreground">
                         Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, mentors.length)} of {mentors.length} mentors
                       </div>
                       <div className="flex items-center gap-2">
-                        <span className="text-sm text-white/60">Show:</span>
+                        <span className="text-sm text-muted-foreground">Show:</span>
                         <Select value={itemsPerPage.toString()} onValueChange={(value) => {
                           setItemsPerPage(Number(value));
                           setCurrentPage(1);
                         }}>
-                          <SelectTrigger className="w-[70px] h-8 bg-white/5 border-white/10">
+                          <SelectTrigger className="w-[70px] h-8">
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
@@ -607,107 +531,85 @@ export default function MentorsPage() {
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
-                      <button
+                      <Button
+                        variant="outline"
+                        size="sm"
                         onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
                         disabled={currentPage === 1}
-                        className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
-                          currentPage === 1
-                            ? 'bg-white/5 text-white/30 cursor-not-allowed'
-                            : 'bg-white/10 text-white hover:bg-white/20'
-                        }`}
                       >
                         Previous
-                      </button>
+                      </Button>
                       <div className="flex items-center gap-1">
                         {Array.from({ length: Math.ceil(mentors.length / itemsPerPage) }, (_, i) => i + 1).map((page) => (
-                          <button
+                          <Button
                             key={page}
+                            variant={currentPage === page ? 'default' : 'outline'}
+                            size="sm"
                             onClick={() => setCurrentPage(page)}
-                            className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
-                              currentPage === page
-                                ? 'bg-blue-600 text-white'
-                                : 'bg-white/10 text-white hover:bg-white/20'
-                            }`}
+                            className="w-8 h-8 p-0"
                           >
                             {page}
-                          </button>
+                          </Button>
                         ))}
                       </div>
-                      <button
+                      <Button
+                        variant="outline"
+                        size="sm"
                         onClick={() => setCurrentPage(p => Math.min(Math.ceil(mentors.length / itemsPerPage), p + 1))}
                         disabled={currentPage === Math.ceil(mentors.length / itemsPerPage)}
-                        className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
-                          currentPage === Math.ceil(mentors.length / itemsPerPage)
-                            ? 'bg-white/5 text-white/30 cursor-not-allowed'
-                            : 'bg-white/10 text-white hover:bg-white/20'
-                        }`}
                       >
                         Next
-                      </button>
+                      </Button>
                     </div>
                   </div>
                 )}
                 </>
               ) : (
-                <div className="text-center py-16">
-                  <div className="w-16 h-16 gradient-primary rounded-full flex items-center justify-center mx-auto mb-4">
-                    <Search className="w-8 h-8 text-white" />
+                <div className="text-center py-12">
+                  <div className="w-12 h-12 bg-muted rounded-full flex items-center justify-center mx-auto mb-4">
+                    <Users className="w-6 h-6 text-muted-foreground" />
                   </div>
-                  <h3 className="text-lg font-semibold text-premium mb-2">No mentors found</h3>
-                  <p className="text-foreground-secondary mb-6">No mentors match your current search criteria</p>
-                  <button
-                    className="btn-gradient"
+                  <h3 className="text-base font-semibold text-foreground mb-2">No mentors found</h3>
+                  <p className="text-sm text-muted-foreground mb-4">No mentors match your current search criteria</p>
+                  <Button
+                    variant="outline"
                     onClick={() => setFilters({ role: 'all', status: 'all', search: '' })}
                   >
                     Clear Filters
-                  </button>
+                  </Button>
                 </div>
               )}
             </div>
           ) : (
             // CARD VIEW
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-              {mentors && mentors.length > 0 ? mentors.map((mentor, index: number) => (
-                <motion.div
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {mentors && mentors.length > 0 ? mentors.map((mentor) => (
+                <MentorCard
                   key={mentor.id}
-                  initial={{ opacity: 0, y: 30, scale: 0.9 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  transition={{
-                    duration: 0.5,
-                    delay: index * 0.1,
-                    type: "spring",
-                    bounce: 0.3
-                  }}
-                  className="hover-lift h-full"
-                >
-                  <MentorCard
-                    mentor={mentor}
-                    canEdit={canEditMentor}
-                    canDelete={canDeleteMentor}
-                    canViewDetails={canViewDetails}
-                  />
-                </motion.div>
+                  mentor={mentor}
+                  canEdit={canEditMentor}
+                  canDelete={canDeleteMentor}
+                  canViewDetails={canViewDetails}
+                />
               )) : (
                 <div className="col-span-full">
-                  <div className="premium-card text-center py-16">
-                    <div className="w-16 h-16 gradient-primary rounded-full flex items-center justify-center mx-auto mb-4">
-                      <Search className="w-8 h-8 text-white" />
+                  <div className="bg-card border border-border rounded-lg text-center py-12">
+                    <div className="w-12 h-12 bg-muted rounded-full flex items-center justify-center mx-auto mb-4">
+                      <Users className="w-6 h-6 text-muted-foreground" />
                     </div>
-                    <h3 className="text-lg font-semibold text-premium mb-2">No mentors found</h3>
-                    <p className="text-foreground-secondary mb-6">No mentors match your current search criteria</p>
-                    <button
-                      className="btn-gradient"
+                    <h3 className="text-base font-semibold text-foreground mb-2">No mentors found</h3>
+                    <p className="text-sm text-muted-foreground mb-4">No mentors match your current search criteria</p>
+                    <Button
+                      variant="outline"
                       onClick={() => setFilters({ role: 'all', status: 'all', search: '' })}
                     >
                       Clear Filters
-                    </button>
+                    </Button>
                   </div>
                 </div>
               )}
             </div>
           )}
-        </motion.div>
-      </motion.div>
       </div>
     </div>
   );
